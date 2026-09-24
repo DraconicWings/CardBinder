@@ -1,6 +1,5 @@
-// PASTE YOUR PUBLISHED GOOGLE SHEET CSV LINKS HERE WHEN READY
-const MASTER_CARDS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSw7uMK-pIYU0n_l8ypDgW2GrgLgnQIO5_j6phxej4IetUEDbzizT-xr4X1nV2TPQEYF2fvT2JBdpjJ/pub?gid=0&single=true&output=csv";
-const USER_INVENTORY_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSw7uMK-pIYU0n_l8ypDgW2GrgLgnQIO5_j6phxej4IetUEDbzizT-xr4X1nV2TPQEYF2fvT2JBdpjJ/pub?gid=923512728&single=true&output=csv";
+const MASTER_CARDS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSw7uMK-pIYU0n_l8ypDgW2GrgLgnQIO5_j6phxej4IetUEDbzizT-xr4X1nV2TPQEYF2fVT2JBdpjJ/pub?gid=0&single=true&output=csv";
+const USER_INVENTORY_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSw7uMK-pIYU0n_l8ypDgW2GrgLgnQIO5_j6phxej4IetUEDbzizT-xr4X1nV2TPQEYF2fVT2JBdpjJ/pub?gid=923512728&single=true&output=csv";
 
 let masterCards = [];
 let userInventory = [];
@@ -27,7 +26,7 @@ function initBinder() {
           Card_ID: cleanRow['card_id'] || cleanRow['id'] || "",
           Card_Name: cleanRow['card_name'] || cleanRow['name'] || "Unknown Card",
           Artwork_URL: cleanRow['artwork_url'] || cleanRow['image'] || cleanRow['url'] || "",
-          Back_Artwork_URL: cleanRow['back_artwork_url'] || cleanRow['back_image'] || cleanRow['back_url'] || "https://i.imgur.com/83pZ2eM.png",
+          Back_Artwork_URL: cleanRow['back_artwork_url'] || cleanRow['back_artwork'] || cleanRow['back_url'] || "https://i.imgur.com/83pZ2eM.png",
           Variant_Type: cleanRow['variant_type'] || cleanRow['variant'] || cleanRow['rarity'] || "normal"
         };
       }).filter(card => card.Card_ID !== "" || card.Artwork_URL !== "");
@@ -152,7 +151,7 @@ function openModal(card) {
   
   modalCardImg.src = card.Artwork_URL;
   if (modalCardBackImg) {
-    modalCardBackImg.src = card.Back_Artwork_URL || "https://i.imgur.com/83pZ2eM.png";
+    modalCardBackImg.src = card.Back_Artwork_URL;
   }
 
   card3D.className = `card-3d variant-${variant}`;
