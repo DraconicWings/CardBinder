@@ -1,5 +1,5 @@
-const MASTER_CARDS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSw7uMK-pIYU0n_l8ypDgW2GrgLgnQIO5_j6phxej4IetUEDbzizT-xr4X1nV2TPQEYF2fVT2JBdpjJ/pub?gid=0&single=true&output=csv";
-const USER_INVENTORY_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSw7uMK-pIYU0n_l8ypDgW2GrgLgnQIO5_j6phxej4IetUEDbzizT-xr4X1nV2TPQEYF2fVT2JBdpjJ/pub?gid=923512728&single=true&output=csv";
+const MASTER_CARDS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSw7uMK-pIYU0n_l8ypDgW2GrgLgnQIO5_j6phxej4IetUEDbzizT-xr4X1nV2TPQEYF2fvT2JBdpjJ/pub?gid=0&single=true&output=csv" + Date.now();
+const USER_INVENTORY_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSw7uMK-pIYU0n_l8ypDgW2GrgLgnQIO5_j6phxej4IetUEDbzizT-xr4X1nV2TPQEYF2fvT2JBdpjJ/pub?gid=923512728&single=true&output=csv" + Date.now();
 
 let masterCards = [];
 let userInventory = [];
