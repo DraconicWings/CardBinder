@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Twitch 3D Card Binder - Locked Prismatic & Restored Foil</title>
+  <title>Card Binder - Perfect Metallic Foil</title>
   <style>
     :root {
       --bg-dark: #0e0e10;
@@ -47,7 +47,7 @@
     .face-back { z-index: 1; transform: rotateY(180deg); }
     .card-img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }
 
-    /* Oscillation for locked Prismatic finish */
+    /* Shared smooth back-and-forth oscillation */
     @keyframes oscillateSheen {
       0% { background-position: 0% 50%; }
       100% { background-position: 100% 50%; }
@@ -56,7 +56,7 @@
     .finish-layer {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
       pointer-events: none; z-index: 3; 
-      opacity: 1; /* Locked at full visibility without hover dimming/darkening */
+      opacity: 1; /* Fully locked brightness, no hover darkening */
     }
 
     .card-container.unowned .face-front img { filter: grayscale(100%) brightness(0.45); }
@@ -237,17 +237,28 @@
 
     function getFinishConfig(variant, card) {
       if (variant === 'Foil') {
-        // Restored original approved Foil implementation using card.Foil_Matte texture/mask overlay correctly
-        const matteSource = card.Foil_Matte ? card.Foil_Matte : card.ArtworkURL;
+        // Metallic silver shimmering gradient masked cleanly by the user's Foil_Matte alpha channel without darkening artwork
+        const matteUrl = card.Foil_Matte ? card.Foil_Matte : card.ArtworkURL;
         return `
-          background-image: url('${matteSource}');
-          background-size: cover;
-          background-position: center;
-          mix-blend-mode: color-burn;
-          filter: brightness(1.15) contrast(1.2);
+          background: linear-gradient(110deg, 
+            rgba(200, 200, 200, 0.2) 20%, 
+            rgba(255, 255, 255, 0.9) 48%, 
+            rgba(220, 220, 220, 0.95) 50%, 
+            rgba(255, 255, 255, 0.9) 52%, 
+            rgba(200, 200, 200, 0.2) 80%
+          );
+          background-size: 250% 100%;
+          animation: oscillateSheen 5s ease-in-out infinite alternate;
+          -webkit-mask-image: url('${matteUrl}');
+          mask-image: url('${matteUrl}');
+          -webkit-mask-size: cover;
+          mask-size: cover;
+          -webkit-mask-position: center;
+          mask-position: center;
+          mix-blend-mode: screen;
         `;
       } else if (variant === 'Prismatic') {
-        // Locked-in approved Prismatic oscillating setup
+        // Locked-in approved Prismatic configuration
         return `
           background: linear-gradient(115deg, 
             rgba(255, 50, 150, 0.45), 
