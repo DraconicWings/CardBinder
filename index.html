@@ -70,11 +70,10 @@
       width: 100%;
     }
 
-    /* Debug Console Box on Page */
     #debugBox {
       background: #1f1f23;
-      border: 1px solid #ff5555;
-      color: #ff8888;
+      border: 1px solid #3a3a44;
+      color: #adadb8;
       padding: 12px 18px;
       border-radius: 8px;
       margin-bottom: 24px;
@@ -137,18 +136,19 @@
       pointer-events: none;
     }
 
+    /* Balanced, Matte-masked Foil finish layer */
     .finish-layer {
       position: absolute;
       top: 0; left: 0; width: 100%; height: 100%;
       pointer-events: none;
       z-index: 3;
       opacity: 0;
-      transition: opacity 0.25s ease;
+      transition: opacity 0.3s ease;
     }
 
     .card-container:hover .finish-layer,
     .modal-card-stage:hover .finish-layer {
-      opacity: 1;
+      opacity: 0.85; /* Softened overall presence */
     }
 
     .card-container.unowned .face-front img {
@@ -213,8 +213,8 @@
       <input type="text" id="userInput" class="input-field" placeholder="Twitch Username..." value="StreamerOne">
       <select id="variantSelect" class="select-field">
         <option value="Normal">Normal Collection</option>
-        <option value="Rare">Rare (Masked Foil)</option>
-        <option value="Prismatic">Prismatic (Masked Rainbow)</option>
+        <option value="Rare">Rare (Matte-Masked Foil)</option>
+        <option value="Prismatic">Prismatic (Matte-Masked Rainbow)</option>
       </select>
     </div>
   </header>
@@ -254,7 +254,6 @@
 
   <script>
     const RAW_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSw7uMK-pIYU0n_l8ypDgW2GrgLgnQIO5_j6phxej4IetUEDbzizT-xr4X1nV2TPQEYF2fvT2JBdpjJ/pub?gid=0&single=true&output=csv';
-    // Wrap with AllOrigins CORS proxy so GitHub Pages can read it successfully
     const SHEET_CSV_URL = `https://api.allorigins.win/raw?url=${encodeURIComponent(RAW_CSV_URL)}`;
     
     let cards = [];
@@ -402,14 +401,15 @@
       if (variant === 'Rare') {
         return {
           layerStyle: `
-            background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.75) 0%, rgba(255,215,0,0.35) 35%, rgba(0,0,0,0.4) 75%),
-                        linear-gradient(110deg, transparent 20%, rgba(255,255,255,0.8) 46%, rgba(255,200,50,0.5) 50%, transparent 75%);
-            background-size: 200% 200%, 150% 150%;
-            mix-blend-mode: color-dodge;
+            background: linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(255,215,0,0.5) 50%, rgba(255,255,255,0.8) 100%);
+            background-size: 200% 200%;
+            mix-blend-mode: overlay;
             -webkit-mask-image: url('${maskUrl}');
+            -webkit-mask-mode: luminance;
             -webkit-mask-size: cover;
             -webkit-mask-position: center;
             mask-image: url('${maskUrl}');
+            mask-mode: luminance;
             mask-size: cover;
             mask-position: center;
           `
@@ -417,14 +417,15 @@
       } else if (variant === 'Prismatic') {
         return {
           layerStyle: `
-            background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.75) 0%, rgba(0,255,255,0.3) 30%, rgba(255,0,128,0.2) 60%, rgba(0,0,0,0.4) 80%),
-                        repeating-linear-gradient(45deg, rgba(255,0,128,0.3) 0%, rgba(0,255,255,0.3) 15%, rgba(255,255,0,0.3) 30%, rgba(255,0,128,0.3) 45%);
-            background-size: 220% 220%, 180% 180%;
-            mix-blend-mode: color-dodge;
+            background: linear-gradient(120deg, rgba(255,0,128,0.5) 0%, rgba(0,255,255,0.5) 33%, rgba(255,255,0,0.5) 66%, rgba(255,0,255,0.5) 100%);
+            background-size: 250% 250%;
+            mix-blend-mode: overlay;
             -webkit-mask-image: url('${maskUrl}');
+            -webkit-mask-mode: luminance;
             -webkit-mask-size: cover;
             -webkit-mask-position: center;
             mask-image: url('${maskUrl}');
+            mask-mode: luminance;
             mask-size: cover;
             mask-position: center;
           `
