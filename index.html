@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Twitch 3D Card Binder - CSV Masked Foil</title>
+  <title>Twitch 3D Card Binder - Live Google Sheets</title>
   <style>
     :root {
       --bg-dark: #0e0e10;
@@ -80,6 +80,14 @@
       justify-items: center;
     }
 
+    .loading-state {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 60px;
+      color: var(--text-muted);
+      font-size: 1.1rem;
+    }
+
     /* 3D Card Physics Base */
     .card-container {
       width: var(--card-w);
@@ -127,7 +135,7 @@
       pointer-events: none;
     }
 
-    /* CSV-Masked Foil Layer */
+    /* Foil Finish Layer using Google Sheet Foil_mask */
     .finish-layer {
       position: absolute;
       top: 0; left: 0; width: 100%; height: 100%;
@@ -244,14 +252,16 @@
       <input type="text" id="userInput" class="input-field" placeholder="Twitch Username..." value="StreamerOne">
       <select id="variantSelect" class="select-field">
         <option value="Normal">Normal Collection</option>
-        <option value="Rare">Rare (CSV Masked Foil)</option>
-        <option value="Prismatic">Prismatic (CSV Masked Rainbow)</option>
+        <option value="Rare">Rare (Masked Foil)</option>
+        <option value="Prismatic">Prismatic (Masked Rainbow)</option>
       </select>
     </div>
   </header>
 
   <main>
-    <div class="card-grid" id="cardGrid"></div>
+    <div class="card-grid" id="cardGrid">
+      <div class="loading-state">Loading cards from Google Sheets...</div>
+    </div>
   </main>
 
   <!-- Zoom Modal -->
@@ -283,68 +293,88 @@
   </div>
 
   <script>
-    // Simulating data loaded from your Google Sheet / CSV including the B&W mask column
-    const cards = [
-      { 
-        id: 'CARD-1', 
-        name: 'Cyber Streamer', 
-        rarity: 'Epic', 
-        artwork: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=500', 
-        maskArtwork: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=500', // Reference to CSV mask column
-        backArtwork: 'https://images.unsplash.com/photo-1634017839464-5c339ebe3cb4?w=500' 
-      },
-      { 
-        id: 'CARD-2', 
-        name: 'Neon Glitch', 
-        rarity: 'Rare', 
-        artwork: 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?w=500', 
-        maskArtwork: 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?w=500', 
-        backArtwork: 'https://images.unsplash.com/photo-1634017839464-5c339ebe3cb4?w=500' 
-      },
-      { 
-        id: 'CARD-3', 
-        name: 'Void Walker', 
-        rarity: 'Legendary', 
-        artwork: 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=500', 
-        maskArtwork: 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=500', 
-        backArtwork: 'https://images.unsplash.com/photo-1634017839464-5c339ebe3cb4?w=500' 
-      },
-      { 
-        id: 'CARD-4', 
-        name: 'Quantum Core', 
-        rarity: 'Common', 
-        artwork: 'https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=500', 
-        maskArtwork: 'https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=500', 
-        backArtwork: 'https://images.unsplash.com/photo-1634017839464-5c339ebe3cb4?w=500' 
-      },
-      { 
-        id: 'CARD-5', 
-        name: 'Synthwave Horizon', 
-        rarity: 'Rare', 
-        artwork: 'https://images.unsplash.com/photo-1508739773434-c26b3d09e071?w=500', 
-        maskArtwork: 'https://images.unsplash.com/photo-1508739773434-c26b3d09e071?w=500', 
-        backArtwork: 'https://images.unsplash.com/photo-1634017839464-5c339ebe3cb4?w=500' 
-      },
-      { 
-        id: 'CARD-6', 
-        name: 'Matrix Assassin', 
-        rarity: 'Epic', 
-        artwork: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=500', 
-        maskArtwork: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=500', 
-        backArtwork: 'https://images.unsplash.com/photo-1634017839464-5c339ebe3cb4?w=500' 
-      }
-    ];
-
+    const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSw7uMK-pIYU0n_l8ypDgW2GrgLgnQIO5_j6phxej4IetUEDbzizT-xr4X1nV2TPQEYF2fvT2JBdpjJ/pub?gid=0&single=true&output=csv';
+    
+    let cards = [];
     let isFlipped = false;
 
+    function parseCSV(text) {
+      let lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+      if (lines.length === 0) return [];
+      
+      let headers = parseCSVLine(lines[0]).map(h => h.trim());
+      let result = [];
+
+      for (let i = 1; i < lines.length; i++) {
+        let obj = {};
+        let currentLine = parseCSVLine(lines[i]);
+        for (let j = 0; j < headers.length; j++) {
+          obj[headers[j]] = currentLine[j] ? currentLine[j].trim().replace(/^"|"$/g, '') : '';
+        }
+        result.push(obj);
+      }
+      return result;
+    }
+
+    function parseCSVLine(text) {
+      let result = [];
+      let current = '';
+      let inQuotes = false;
+      for (let i = 0; i < text.length; i++) {
+        let char = text[i];
+        if (char === '"') {
+          inQuotes = !inQuotes;
+        } else if (char === ',' && !inQuotes) {
+          result.push(current);
+          current = '';
+        } else {
+          current += char;
+        }
+      }
+      result.push(current);
+      return result.map(s => s.replace(/^"|"$/g, ''));
+    }
+
+    async function loadSheetData() {
+      try {
+        const response = await fetch(SHEET_CSV_URL);
+        const csvText = await response.text();
+        const rawData = parseCSV(csvText);
+
+        // Map strictly to your Google Sheet column names
+        cards = rawData.map((row, idx) => ({
+          id: row.Card_ID || `CARD-${idx + 1}`,
+          name: row.Card_Name || `Card ${idx + 1}`,
+          rarity: row.Card_Rarity || 'Common',
+          artwork: row.Artwork_URL || '',
+          maskArtwork: row.Foil_mask || row.Artwork_URL || '',
+          backArtwork: row.Back_Artwork_URL || 'https://images.unsplash.com/photo-1634017839464-5c339ebe3cb4?w=500'
+        }));
+
+        render();
+      } catch (err) {
+        console.error('Failed to load Google Sheet CSV:', err);
+        document.getElementById('cardGrid').innerHTML = `
+          <div class="loading-state" style="color: #ff5555;">
+            Failed to load card data from Google Sheets. Please check your publishing link or CORS permissions.
+          </div>
+        `;
+      }
+    }
+
     function init() {
-      render();
+      loadSheetData();
     }
 
     function render() {
       const grid = document.getElementById('cardGrid');
       const selectedVariant = document.getElementById('variantSelect').value;
       grid.innerHTML = '';
+
+      if (cards.length === 0) {
+        grid.innerHTML = `<div class="loading-state">No cards found in sheet.</div>`;
+        return;
+      }
 
       cards.forEach((card, index) => {
         const isOwned = (index % 2 === 0);
@@ -400,10 +430,10 @@
       if (variant === 'Rare') {
         return {
           layerStyle: `
-            background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.5) 0%, rgba(255,215,0,0.2) 40%, transparent 70%),
-                        linear-gradient(105deg, transparent 25%, rgba(255,255,255,0.6) 48%, rgba(255,200,50,0.35) 52%, transparent 75%);
+            background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.75) 0%, rgba(255,215,0,0.35) 35%, rgba(0,0,0,0.4) 75%),
+                        linear-gradient(110deg, transparent 20%, rgba(255,255,255,0.8) 46%, rgba(255,200,50,0.5) 50%, transparent 75%);
             background-size: 200% 200%, 150% 150%;
-            mix-blend-mode: overlay;
+            mix-blend-mode: color-dodge;
             -webkit-mask-image: url('${maskUrl}');
             -webkit-mask-size: cover;
             -webkit-mask-position: center;
@@ -415,10 +445,10 @@
       } else if (variant === 'Prismatic') {
         return {
           layerStyle: `
-            background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.5) 0%, rgba(0,255,255,0.15) 40%, transparent 70%),
-                        repeating-linear-gradient(45deg, rgba(255,0,128,0.2) 0%, rgba(0,255,255,0.2) 20%, rgba(255,255,0,0.2) 40%, rgba(255,0,128,0.2) 60%);
+            background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.75) 0%, rgba(0,255,255,0.3) 30%, rgba(255,0,128,0.2) 60%, rgba(0,0,0,0.4) 80%),
+                        repeating-linear-gradient(45deg, rgba(255,0,128,0.3) 0%, rgba(0,255,255,0.3) 15%, rgba(255,255,0,0.3) 30%, rgba(255,0,128,0.3) 45%);
             background-size: 220% 220%, 180% 180%;
-            mix-blend-mode: overlay;
+            mix-blend-mode: color-dodge;
             -webkit-mask-image: url('${maskUrl}');
             -webkit-mask-size: cover;
             -webkit-mask-position: center;
