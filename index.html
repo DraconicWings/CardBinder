@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Twitch 3D Card Binder - Prismatic Edition</title>
+  <title>Card Binder - Prismatic Edition</title>
   <style>
     :root {
       --bg-dark: #0e0e10;
@@ -152,9 +152,9 @@
 
     /* Automatic Prismatic Sweep Animation */
     @keyframes prismaticShine {
-      0% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-      100% { background-position: 0% 50%; }
+      0% { background-position: 0% 50%, 0% 0%; }
+      50% { background-position: 100% 50%, 0% 0%; }
+      100% { background-position: 0% 50%, 0% 0%; }
     }
 
     .card-container.unowned .face-front img {
@@ -351,7 +351,7 @@
         ArtworkURL: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=500",
         CardBackURL: "https://images.unsplash.com/photo-1634017839464-5c339ebe3cb4?w=500",
         Foil_Matte: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=500",
-        Prismatic_Texture: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=500"
+        Prismatic_Texture: ""
       },
       {
         Card_ID: "CARD-002",
@@ -359,7 +359,7 @@
         ArtworkURL: "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=500",
         CardBackURL: "https://images.unsplash.com/photo-1634017839464-5c339ebe3cb4?w=500",
         Foil_Matte: "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=500",
-        Prismatic_Texture: "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=500"
+        Prismatic_Texture: ""
       }
     ];
 
@@ -459,25 +459,20 @@
           `
         };
       } else if (variant === 'Prismatic') {
-        const textureUrl = card.Prismatic_Texture || card.ArtworkURL;
+        // Fallback to a default crystal pattern if custom URL isn't supplied
+        const textureUrl = card.Prismatic_Texture || "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=500";
         return {
           layerStyle: `
             background: 
-              radial-gradient(circle at ${posX}% ${posY}%, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.3) 35%, transparent 65%),
-              linear-gradient(120deg, rgba(255,0,128,0.75) 0%, rgba(0,255,255,0.75) 25%, rgba(255,255,0,0.75) 50%, rgba(0,255,128,0.75) 75%, rgba(255,0,255,0.75) 100%);
-            background-size: 100% 100%, 300% 300%;
-            background-position: 0% 0%;
-            animation: prismaticShine 5s linear infinite;
-            mix-blend-mode: overlay;
+              radial-gradient(circle at ${posX}% ${posY}%, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.2) 40%, transparent 70%),
+              linear-gradient(120deg, rgba(255,0,150,0.4), rgba(0,255,255,0.4), rgba(255,255,0,0.4), rgba(0,255,128,0.4)),
+              url('${textureUrl}');
+            background-size: 100% 100%, 300% 300%, cover;
+            background-position: 0% 0%, ${posX}% ${posY}%, center;
+            background-blend-mode: overlay, normal, luminosity;
+            animation: prismaticShine 6s linear infinite;
+            mix-blend-mode: color-dodge;
             opacity: 0.95;
-            -webkit-mask-image: url('${textureUrl}');
-            -webkit-mask-mode: luminance;
-            -webkit-mask-size: cover;
-            -webkit-mask-position: center;
-            mask-image: url('${textureUrl}');
-            mask-mode: luminance;
-            mask-size: cover;
-            mask-position: center;
           `
         };
       }
