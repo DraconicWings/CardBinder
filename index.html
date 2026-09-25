@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Card Binder - Prismatic Edition</title>
+  <title>Twitch 3D Card Binder - Prismatic Edition</title>
   <style>
     :root {
       --bg-dark: #0e0e10;
@@ -135,28 +135,22 @@
       pointer-events: none;
     }
 
-    /* Finish / Shine layers using CSS Variables for mouse tracking */
+    /* Finish / Shine layers - completely hidden by default, revealed only by mouse circle */
     .finish-layer {
       position: absolute;
       top: 0; left: 0; width: 100%; height: 100%;
       pointer-events: none;
       z-index: 3;
-      --x: 50%;
-      --y: 50%;
-      opacity: 0.35; /* Softly visible when mouse is away */
-      transition: opacity 0.3s ease;
+      --x: -500px;
+      --y: -500px;
+      opacity: 1;
     }
 
-    .card-container:hover .finish-layer,
-    .modal-card-stage:hover .finish-layer {
-      opacity: 0.9; /* Vibrant spotlight intensity on hover */
-    }
-
-    /* Continuous Prismatic Sweep Animation */
+    /* Continuous Rainbow Animation */
     @keyframes prismaticShine {
-      0% { background-position: 0% 0%, 0% 50%, center; }
-      50% { background-position: 0% 0%, 100% 50%, center; }
-      100% { background-position: 0% 0%, 0% 50%, center; }
+      0% { background-position: 0% 50%, center; }
+      50% { background-position: 100% 50%, center; }
+      100% { background-position: 0% 50%, center; }
     }
 
     .card-container.unowned .face-front img {
@@ -419,18 +413,16 @@
           wrapper.style.transform = `rotateX(${rx}deg) rotateY(${ry}deg)`;
 
           if (finishLayer && selectedVariant !== 'Normal') {
-            const posX = (x / rect.width) * 100;
-            const posY = (y / rect.height) * 100;
-            finishLayer.style.setProperty('--x', posX + '%');
-            finishLayer.style.setProperty('--y', posY + '%');
+            finishLayer.style.setProperty('--x', x + 'px');
+            finishLayer.style.setProperty('--y', y + 'px');
           }
         });
 
         cardEl.addEventListener('mouseleave', () => {
           wrapper.style.transform = `rotateX(0deg) rotateY(0deg)`;
           if (finishLayer) {
-            finishLayer.style.setProperty('--x', '50%');
-            finishLayer.style.setProperty('--y', '50%');
+            finishLayer.style.setProperty('--x', '-500px');
+            finishLayer.style.setProperty('--y', '-500px');
           }
         });
 
@@ -443,11 +435,9 @@
       if (variant === 'Foil') {
         const maskUrl = card.Foil_Matte || card.ArtworkURL;
         return `
-          background: 
-            radial-gradient(circle 120px at var(--x) var(--y), rgba(255,255,255,0.7) 0%, rgba(255,255,255,0.05) 50%, transparent 100%),
-            linear-gradient(135deg, rgba(160,175,195,0.3) 0%, rgba(255,255,255,0.6) 28%, rgba(70,80,95,0.4) 55%, rgba(255,255,255,0.6) 80%, rgba(200,210,225,0.3) 100%);
-          background-size: 100% 100%, 180% 180%;
-          background-position: 0% 0%, 0% 0%;
+          background: radial-gradient(circle 100px at var(--x) var(--y), rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.3) 40%, transparent 80%),
+                      linear-gradient(135deg, rgba(160,175,195,0.2) 0%, rgba(255,255,255,0.4) 50%, rgba(160,175,195,0.2) 100%);
+          background-size: 100% 100%, 100% 100%;
           mix-blend-mode: overlay;
           -webkit-mask-image: url('${maskUrl}');
           -webkit-mask-mode: luminance;
@@ -462,14 +452,14 @@
         const textureUrl = card.Prismatic_Texture || "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=500";
         return `
           background: 
-            radial-gradient(circle 130px at var(--x) var(--y), rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.1) 50%, transparent 100%),
-            linear-gradient(120deg, rgba(255,0,150,0.15), rgba(0,255,255,0.15), rgba(255,255,0,0.15), rgba(0,255,128,0.15)),
+            radial-gradient(circle 120px at var(--x) var(--y), rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.2) 40%, transparent 80%),
+            linear-gradient(120deg, rgba(255,0,128,0.6), rgba(0,255,255,0.6), rgba(255,255,0,0.6), rgba(0,255,128,0.6), rgba(255,0,128,0.6)),
             url('${textureUrl}');
-          background-size: 100% 100%, 300% 300%, cover;
+          background-size: 100% 100%, 300% 100%, cover;
           background-position: 0% 0%, 0% 50%, center;
-          background-blend-mode: overlay, normal, luminosity;
-          animation: prismaticShine 6s linear infinite;
-          mix-blend-mode: color-dodge;
+          background-blend-mode: normal, overlay, luminosity;
+          animation: prismaticShine 5s linear infinite;
+          mix-blend-mode: soft-light;
         `;
       }
       return 'display: none;';
@@ -520,10 +510,8 @@
 
       const modalFinish = document.getElementById('modalFinishLayer');
       if (modalFinish) {
-        const posX = (x / rect.width) * 100;
-        const posY = (y / rect.height) * 100;
-        modalFinish.style.setProperty('--x', posX + '%');
-        modalFinish.style.setProperty('--y', posY + '%');
+        modalFinish.style.setProperty('--x', x + 'px');
+        modalFinish.style.setProperty('--y', y + 'px');
       }
     });
 
@@ -531,8 +519,8 @@
       modalCard.style.transform = isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)';
       const modalFinish = document.getElementById('modalFinishLayer');
       if (modalFinish) {
-        modalFinish.style.setProperty('--x', '50%');
-        modalFinish.style.setProperty('--y', '50%');
+        modalFinish.style.setProperty('--x', '-500px');
+        modalFinish.style.setProperty('--y', '-500px');
       }
     });
 
