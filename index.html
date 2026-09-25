@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Card Binder - Precise Masked Foil</title>
+  <title>Twitch 3D Card Binder - Precise Masked Foil</title>
   <style>
     :root {
       --bg-dark: #0e0e10;
@@ -183,11 +183,11 @@
     let masterCards = [
       {
         Card_ID: "CARD-001",
-        Card_Name: "Celestial Dragon",
-        ArtworkURL: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=500",
-        CardBackURL: "https://images.unsplash.com/photo-1634017839464-5c339ebe3cb4?w=500",
-        Foil_Matte: "",
-        Prismatic_Texture: ""
+        Card_Name: "Teatime with Stitchy",
+        ArtworkURL: "https://i.imgur.com/rarZMX",
+        CardBackURL: "https://i.imgur.com/GaFZUI",
+        Foil_Matte: "https://i.imgur.com/9AywIF",
+        Prismatic_Texture: "https://i.imgur.com/bh6XZL"
       }
     ];
 
@@ -254,12 +254,13 @@
 
     function getFinishConfig(variant, card, posX = 50, posY = 50) {
       if (variant === 'Foil') {
-        if (!card.Foil_Matte) return 'display: none;'; // Do not render foil if matte URL is blank
+        if (!card.Foil_Matte) return 'display: none;';
+        // Subdued realistic metallic silver sheen masked strictly by Foil_Matte URL
         return `
           background: radial-gradient(circle at ${posX}% ${posY}%, 
-            rgba(255, 255, 255, 0.95) 0%, 
-            rgba(180, 180, 180, 0.7) 40%, 
-            rgba(60, 60, 60, 0.9) 80%
+            rgba(215, 215, 215, 0.85) 0%, 
+            rgba(130, 130, 130, 0.5) 45%, 
+            rgba(55, 55, 55, 0.85) 85%
           );
           background-size: 200% 200%;
           background-position: ${posX}% ${posY}%;
