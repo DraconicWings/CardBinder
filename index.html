@@ -1,9 +1,12 @@
+Here is the full, complete code with your new gem-texture prismatic spotlight effect integrated, while keeping your locked foil code untouched:
+HTML
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Card Binder - Metallic Foil</title>
+  <title>Twitch 3D Card Binder - Prismatic Gem Spotlight</title>
   <style>
     :root {
       --bg-dark: #0e0e10;
@@ -46,11 +49,6 @@
     .face-front { z-index: 2; transform: rotateY(0deg); }
     .face-back { z-index: 1; transform: rotateY(180deg); }
     .card-img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }
-
-    @keyframes oscillateSheen {
-      0% { background-position: 0% 50%; }
-      100% { background-position: 100% 50%; }
-    }
 
     .finish-layer {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
@@ -186,7 +184,7 @@
         ArtworkURL: "https://i.imgur.com/rarZMX.png",
         CardBackURL: "https://i.imgur.com/GaFZUI.png",
         Foil_Matte: "https://i.imgur.com/9AywIF.png",
-        Prismatic_Texture: "https://i.imgur.com/bh6XZL.png"
+        Prismatic_Texture: ""
       }
     ];
 
@@ -232,10 +230,13 @@
 
           wrapper.style.transform = `rotateX(${(-yc / rect.height) * 14}deg) rotateY(${(xc / rect.width) * 14}deg)`;
 
-          if (variant === 'Foil' && card.Foil_Matte) {
+          if ((variant === 'Foil' && card.Foil_Matte) || (variant === 'Prismatic' && card.Prismatic_Texture)) {
             const posX = (x / rect.width) * 100;
             const posY = (y / rect.height) * 100;
-            finishLayer.style.backgroundPosition = `${posX}% ${posY}%`;
+            finishLayer.style.backgroundPosition = variant === 'Foil' ? `${posX}% ${posY}%` : `center, center`;
+            if (variant === 'Prismatic') {
+              finishLayer.style.cssText = getFinishConfig(variant, card, posX, posY);
+            }
           }
         });
 
@@ -243,6 +244,8 @@
           wrapper.style.transform = `rotateX(0deg) rotateY(0deg)`;
           if (variant === 'Foil' && card.Foil_Matte) {
             finishLayer.style.backgroundPosition = `50% 50%`;
+          } else if (variant === 'Prismatic' && card.Prismatic_Texture) {
+            finishLayer.style.cssText = getFinishConfig(variant, card, 50, 50);
           }
         });
 
@@ -254,6 +257,7 @@
     function getFinishConfig(variant, card, posX = 50, posY = 50) {
       if (variant === 'Foil') {
         if (!card.Foil_Matte) return 'display: none;';
+        // --- LOCKED FOIL CONFIG (DO NOT TOUCH) ---
         return `
           background: radial-gradient(circle at ${posX}% ${posY}%, 
             rgba(255, 255, 255, 0.95) 0%, 
@@ -274,17 +278,27 @@
           mix-blend-mode: overlay;
         `;
       } else if (variant === 'Prismatic') {
+        if (!card.Prismatic_Texture) return 'display: none;';
+        // --- PRISMATIC GEM SPOTLIGHT CONFIG ---
         return `
-          background: linear-gradient(115deg, 
-            rgba(255, 50, 150, 0.45), 
-            rgba(50, 200, 255, 0.45), 
-            rgba(255, 230, 50, 0.45), 
-            rgba(50, 255, 150, 0.45), 
-            rgba(255, 50, 150, 0.45)
-          );
-          background-size: 300% 100%;
-          animation: oscillateSheen 6s ease-in-out infinite alternate;
-          mix-blend-mode: overlay;
+          background: 
+            radial-gradient(circle at ${posX}% ${posY}%, 
+              rgba(160, 130, 255, 0.85) 0%, 
+              rgba(80, 160, 255, 0.5) 35%, 
+              transparent 70%
+            ),
+            linear-gradient(135deg, rgba(120, 90, 255, 0.35), rgba(70, 180, 255, 0.35));
+          background-size: cover, cover;
+          background-position: center, center;
+          -webkit-mask-image: url('${card.Prismatic_Texture}');
+          mask-image: url('${card.Prismatic_Texture}');
+          -webkit-mask-mode: luminance;
+          mask-mode: luminance;
+          -webkit-mask-size: cover;
+          mask-size: cover;
+          -webkit-mask-position: center;
+          mask-position: center;
+          mix-blend-mode: color-dodge;
         `;
       }
       return 'display: none;';
@@ -322,17 +336,28 @@
       modalCard.style.transform = `rotateX(${(-yc / rect.height) * 14}deg) rotateY(${(isFlipped ? 180 : 0) + (xc / rect.width) * 14}deg)`;
       
       const finishLayer = document.getElementById('modalFinishLayer');
-      if (finishLayer && document.getElementById('variantSelect').value === 'Foil') {
-        const posX = (x / rect.width) * 100;
-        const posY = (y / rect.height) * 100;
-        finishLayer.style.backgroundPosition = `${posX}% ${posY}%`;
+      const currentVariant = document.getElementById('variantSelect').value;
+      if (finishLayer) {
+        if (currentVariant === 'Foil') {
+          const posX = (x / rect.width) * 100;
+          const posY = (y / rect.height) * 100;
+          finishLayer.style.backgroundPosition = `${posX}% ${posY}%`;
+        } else if (currentVariant === 'Prismatic') {
+          const posX = (x / rect.width) * 100;
+          const posY = (y / rect.height) * 100;
+          finishLayer.style.cssText = getFinishConfig('Prismatic', masterCards[0], posX, posY);
+        }
       }
     });
 
     modalStage.addEventListener('mouseleave', () => {
       modalCard.style.transform = isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)';
       const finishLayer = document.getElementById('modalFinishLayer');
-      if (finishLayer) finishLayer.style.backgroundPosition = `50% 50%`;
+      if (finishLayer) {
+        const currentVariant = document.getElementById('variantSelect').value;
+        if (currentVariant === 'Foil') finishLayer.style.backgroundPosition = `50% 50%`;
+        if (currentVariant === 'Prismatic') finishLayer.style.cssText = getFinishConfig('Prismatic', masterCards[0], 50, 50);
+      }
     });
 
     // Admin Editor Code
