@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Twitch 3D Card Binder - Google Sheets Live</title>
+  <title>Twitch 3D Card Binder - Secret Master Editor</title>
   <style>
     :root {
       --bg-dark: #0e0e10;
@@ -46,6 +46,18 @@
     .brand {
       font-weight: 800;
       font-size: 1.2rem;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .hint-tag {
+      font-size: 0.75rem;
+      background: #2d2d35;
+      color: var(--text-muted);
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-weight: normal;
     }
 
     .controls {
@@ -68,19 +80,6 @@
       max-width: 1400px;
       margin: 0 auto;
       width: 100%;
-    }
-
-    #debugBox {
-      background: #1f1f23;
-      border: 1px solid #3a3a44;
-      color: #adadb8;
-      padding: 12px 18px;
-      border-radius: 8px;
-      margin-bottom: 24px;
-      font-family: monospace;
-      font-size: 0.9rem;
-      display: none;
-      white-space: pre-wrap;
     }
 
     .card-grid {
@@ -136,7 +135,7 @@
       pointer-events: none;
     }
 
-    /* Balanced, Matte-masked Foil finish layer */
+    /* Matte-masked Foil finish layer */
     .finish-layer {
       position: absolute;
       top: 0; left: 0; width: 100%; height: 100%;
@@ -203,12 +202,58 @@
       padding: 12px; border-radius: 8px; font-weight: 700; cursor: pointer;
     }
     .btn-flip:hover { background: var(--accent-hover); }
+
+    /* Secret Google-Sheets-style Admin Modal */
+    .admin-modal {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.92); z-index: 2000; display: none;
+      justify-content: center; align-items: center; padding: 20px;
+    }
+    .admin-modal.active { display: flex; }
+    .admin-box {
+      background: #18181b; border: 1px solid #3a3a44; border-radius: 14px;
+      width: 100%; max-width: 1100px; height: 85vh; display: flex; flex-direction: column; overflow: hidden;
+    }
+    .admin-header {
+      background: #1f1f23; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center;
+      border-bottom: 1px solid #2d2d35;
+    }
+    .admin-body {
+      flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px;
+    }
+    .sheet-table {
+      width: 100%; border-collapse: collapse; font-size: 0.9rem;
+    }
+    .sheet-table th, .sheet-table td {
+      border: 1px solid #2d2d35; padding: 8px; text-align: left;
+    }
+    .sheet-table th { background: #26262c; color: var(--text-muted); font-weight: 600; }
+    .sheet-table input {
+      width: 100%; background: #0e0e10; border: 1px solid transparent; color: #fff;
+      padding: 6px; border-radius: 4px; outline: none;
+    }
+    .sheet-table input:focus { border-color: var(--accent); background: #000; }
+    .admin-footer {
+      padding: 16px 20px; background: #1f1f23; border-top: 1px solid #2d2d35;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .btn {
+      background: #2d2d35; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600;
+    }
+    .btn:hover { background: #3a3a44; }
+    .btn-primary { background: var(--accent); }
+    .btn-primary:hover { background: var(--accent-hover); }
+    .btn-danger { background: #5a2020; }
+    .btn-danger:hover { background: #7a2828; }
   </style>
 </head>
 <body>
 
   <header>
-    <div class="brand">Twitch Card Binder</div>
+    <div class="brand">
+      <span>Twitch Card Binder</span>
+      <span class="hint-tag">Secret trigger: Type "matrix" anywhere</span>
+    </div>
     <div class="controls">
       <input type="text" id="userInput" class="input-field" placeholder="Twitch Username..." value="StreamerOne">
       <select id="variantSelect" class="select-field">
@@ -220,9 +265,8 @@
   </header>
 
   <main>
-    <div id="debugBox"></div>
     <div class="card-grid" id="cardGrid">
-      <div class="loading-state">Connecting to Google Sheets...</div>
+      <div class="loading-state">Loading Master Binder...</div>
     </div>
   </main>
 
@@ -252,90 +296,72 @@
     </div>
   </div>
 
+  <!-- Secret Spreadsheet Admin Modal -->
+  <div class="admin-modal" id="adminModal">
+    <div class="admin-box">
+      <div class="admin-header">
+        <h3>📊 Secret Master Spreadsheet Editor</h3>
+        <button class="btn" id="closeAdminBtn">&times; Close</button>
+      </div>
+      <div class="admin-body">
+        <p style="color: var(--text-muted); font-size: 0.85rem;">Edit your card entries directly below like a spreadsheet. Paste URLs, change Card IDs, or modify names. Click "Save Changes" to apply.</p>
+        <table class="sheet-table" id="sheetTable">
+          <thead>
+            <tr>
+              <th style="width: 120px;">Card_ID</th>
+              <th>Card_Name</th>
+              <th>ArtworkURL</th>
+              <th>CardBackURL</th>
+              <th>Foil_Matte</th>
+              <th style="width: 60px;">Action</th>
+            </tr>
+          </thead>
+          <tbody id="sheetTableBody">
+            <!-- Dynamic rows populated via JS -->
+          </tbody>
+        </table>
+        <button class="btn" id="addRowBtn" style="margin-top: 8px;">+ Add New Row</button>
+      </div>
+      <div class="admin-footer">
+        <button class="btn btn-danger" id="resetDefaultBtn">Reset to Defaults</button>
+        <div style="display: flex; gap: 10px;">
+          <button class="btn" id="cancelAdminBtn">Cancel</button>
+          <button class="btn btn-primary" id="saveAdminBtn">Save & Apply Changes</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script>
-    const RAW_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSw7uMK-pIYU0n_l8ypDgW2GrgLgnQIO5_j6phxej4IetUEDbzizT-xr4X1nV2TPQEYF2fvT2JBdpjJ/pub?gid=0&single=true&output=csv';
-    // Switched to corsproxy.io for high availability
-    const SHEET_CSV_URL = `https://corsproxy.io/?${encodeURIComponent(RAW_CSV_URL)}`;
-    
-    let cards = [];
+    // ==========================================
+    // 🌟 MASTER CARD DATABASE (EDIT DIRECTLY HERE OR VIA SECRET CHEATCODE "matrix")
+    // ==========================================
+    let masterCards = [
+      {
+        Card_ID: "CARD-001",
+        Card_Name: "Celestial Dragon",
+        ArtworkURL: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=500",
+        CardBackURL: "https://images.unsplash.com/photo-1634017839464-5c339ebe3cb4?w=500",
+        Foil_Matte: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=500"
+      },
+      {
+        Card_ID: "CARD-002",
+        Card_Name: "Neon Cyber Knight",
+        ArtworkURL: "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=500",
+        CardBackURL: "https://images.unsplash.com/photo-1634017839464-5c339ebe3cb4?w=500",
+        Foil_Matte: "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=500"
+      }
+    ];
+
     let isFlipped = false;
 
-    function showDebug(message) {
-      const dbg = document.getElementById('debugBox');
-      dbg.style.display = 'block';
-      dbg.innerText += message + '\n';
-    }
-
-    function parseCSV(text) {
-      let lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-      if (lines.length === 0) return [];
-      
-      let headers = parseCSVLine(lines[0]).map(h => h.trim());
-      showDebug("Detected CSV Headers: " + headers.join(', '));
-      let result = [];
-
-      for (let i = 1; i < lines.length; i++) {
-        let obj = {};
-        let currentLine = parseCSVLine(lines[i]);
-        for (let j = 0; j < headers.length; j++) {
-          obj[headers[j]] = currentLine[j] ? currentLine[j].trim().replace(/^"|"$/g, '') : '';
-        }
-        result.push(obj);
+    // Load from LocalStorage if previously edited, else use defaults
+    function initBinder() {
+      const saved = localStorage.getItem('twitch_binder_master_db');
+      if (saved) {
+        try { masterCards = JSON.parse(saved); } catch(e) {}
       }
-      return result;
-    }
-
-    function parseCSVLine(text) {
-      let result = [];
-      let current = '';
-      let inQuotes = false;
-      for (let i = 0; i < text.length; i++) {
-        let char = text[i];
-        if (char === '"') {
-          inQuotes = !inQuotes;
-        } else if (char === ',' && !inQuotes) {
-          result.push(current);
-          current = '';
-        } else {
-          current += char;
-        }
-      }
-      result.push(current);
-      return result.map(s => s.replace(/^"|"$/g, ''));
-    }
-
-    async function loadSheetData() {
-      try {
-        const response = await fetch(SHEET_CSV_URL);
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        const csvText = await response.text();
-        
-        if (csvText.includes('<!DOCTYPE html>') || csvText.includes('<html')) {
-          throw new Error('Proxy returned an HTML page instead of CSV data.');
-        }
-
-        const rawData = parseCSV(csvText);
-        showDebug(`Successfully loaded ${rawData.length} rows from Google Sheet.`);
-
-        cards = rawData.map((row, idx) => ({
-          id: row.Card_ID || `CARD-${idx + 1}`,
-          name: row.Card_Name || `Card ${idx + 1}`,
-          rarity: row.Card_Rarity || 'Common',
-          artwork: row.Artwork_URL || '',
-          maskArtwork: row.Foil_mask || row.Artwork_URL || '',
-          backArtwork: row.Back_Artwork_URL || 'https://images.unsplash.com/photo-1634017839464-5c339ebe3cb4?w=500'
-        }));
-
-        render();
-      } catch (err) {
-        showDebug('ERROR: ' + err.message);
-        console.error('Failed to load Google Sheet CSV:', err);
-        document.getElementById('cardGrid').innerHTML = `
-          <div class="loading-state" style="color: #ff5555;">
-            Failed to load card data. Check the debug box above for details.
-          </div>
-        `;
-      }
+      render();
     }
 
     function render() {
@@ -343,26 +369,26 @@
       const selectedVariant = document.getElementById('variantSelect').value;
       grid.innerHTML = '';
 
-      if (cards.length === 0) {
-        grid.innerHTML = `<div class="loading-state">No cards found in sheet.</div>`;
+      if (masterCards.length === 0) {
+        grid.innerHTML = `<div class="loading-state">No cards in master database. Type "matrix" anywhere to open the editor!</div>`;
         return;
       }
 
-      cards.forEach((card, index) => {
-        const isOwned = (index % 2 === 0);
+      masterCards.forEach((card, index) => {
+        const isOwned = (index % 2 === 0); // Simulated owned status for now
         const cardEl = document.createElement('div');
         cardEl.className = `card-container ${isOwned ? '' : 'unowned'}`;
 
-        const finishConfig = getFinishConfig(selectedVariant, card.maskArtwork);
+        const finishConfig = getFinishConfig(selectedVariant, card.Foil_Matte);
 
         cardEl.innerHTML = `
           <div class="card-3d-wrapper">
             <div class="face face-front">
-              <img class="card-img" src="${card.artwork}" alt="${card.name}">
+              <img class="card-img" src="${card.ArtworkURL}" alt="${card.Card_Name}">
               <div class="finish-layer" style="${finishConfig.layerStyle}"></div>
             </div>
             <div class="face face-back">
-              <img class="card-img" src="${card.backArtwork}" alt="Back">
+              <img class="card-img" src="${card.CardBackURL}" alt="Back">
             </div>
           </div>
         `;
@@ -442,14 +468,14 @@
 
     function openModal(card, isOwned, variant) {
       isFlipped = false;
-      document.getElementById('modalTitle').innerText = card.name;
+      document.getElementById('modalTitle').innerText = card.Card_Name;
       document.getElementById('modalVariant').innerText = variant;
       document.getElementById('modalQuantity').innerText = isOwned ? '1x Owned' : '0x Unowned';
 
-      document.getElementById('modalFrontImg').src = card.artwork;
-      document.getElementById('modalBackImg').src = card.backArtwork;
+      document.getElementById('modalFrontImg').src = card.ArtworkURL;
+      document.getElementById('modalBackImg').src = card.CardBackURL;
 
-      const finishConfig = getFinishConfig(variant, card.maskArtwork);
+      const finishConfig = getFinishConfig(variant, card.Foil_Matte);
       document.getElementById('modalFinishLayer').style.cssText = finishConfig.layerStyle;
 
       modalCard.style.transform = 'rotateX(0deg) rotateY(0deg)';
@@ -491,9 +517,93 @@
       modalCard.style.transform = isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)';
     });
 
+    // ==========================================
+    // 🕵️‍♂️ SECRET CHEAT-CODE TRIGGER & SPREADSHEET EDITOR
+    // ==========================================
+    let typedBuffer = "";
+    const secretCode = "matrix";
+    const adminModal = document.getElementById('adminModal');
+
+    window.addEventListener('keydown', (e) => {
+      // Ignore if typing inside input fields
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) return;
+      
+      typedBuffer += e.key.toLowerCase();
+      if (typedBuffer.length > secretCode.length) {
+        typedBuffer = typedBuffer.slice(-secretCode.length);
+      }
+      
+      if (typedBuffer === secretCode) {
+        typedBuffer = "";
+        const password = prompt("🔒 Enter Admin Password:");
+        if (password === "secret123") { // Change password here if desired
+          openAdminEditor();
+        } else if (password !== null) {
+          alert("Incorrect password.");
+        }
+      }
+    });
+
+    function openAdminEditor() {
+      const tbody = document.getElementById('sheetTableBody');
+      tbody.innerHTML = '';
+      
+      masterCards.forEach((card, idx) => {
+        addRowToTable(card, idx);
+      });
+      
+      adminModal.classList.add('active');
+    }
+
+    function addRowToTable(card = { Card_ID: "", Card_Name: "", ArtworkURL: "", CardBackURL: "", Foil_Matte: "" }, index = null) {
+      const tbody = document.getElementById('sheetTableBody');
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><input type="text" class="edit-id" value="${card.Card_ID || ''}" placeholder="CARD-00X"></td>
+        <td><input type="text" class="edit-name" value="${card.Card_Name || ''}" placeholder="Card Name"></td>
+        <td><input type="text" class="edit-art" value="${card.ArtworkURL || ''}" placeholder="https://..."></td>
+        <td><input type="text" class="edit-back" value="${card.CardBackURL || ''}" placeholder="https://..."></td>
+        <td><input type="text" class="edit-foil" value="${card.Foil_Matte || ''}" placeholder="https://..."></td>
+        <td><button class="btn btn-danger" style="padding: 4px 8px; font-size:0.8rem;" onclick="this.closest('tr').remove()">X</button></td>
+      `;
+      tbody.appendChild(tr);
+    }
+
+    document.getElementById('addRowBtn').addEventListener('click', () => addRowToTable());
+    document.getElementById('closeAdminBtn').addEventListener('click', () => adminModal.classList.remove('active'));
+    document.getElementById('cancelAdminBtn').addEventListener('click', () => adminModal.classList.remove('active'));
+
+    document.getElementById('saveAdminBtn').addEventListener('click', () => {
+      const rows = document.querySelectorAll('#sheetTableBody tr');
+      const newCards = [];
+
+      rows.forEach(row => {
+        newCards.push({
+          Card_ID: row.querySelector('.edit-id').value.trim(),
+          Card_Name: row.querySelector('.edit-name').value.trim(),
+          ArtworkURL: row.querySelector('.edit-art').value.trim(),
+          CardBackURL: row.querySelector('.edit-back').value.trim(),
+          Foil_Matte: row.querySelector('.edit-foil').value.trim()
+        });
+      });
+
+      masterCards = newCards;
+      localStorage.setItem('twitch_binder_master_db', JSON.stringify(masterCards));
+      adminModal.classList.remove('active');
+      render();
+      alert("Master database updated successfully!");
+    });
+
+    document.getElementById('resetDefaultBtn').addEventListener('click', () => {
+      if (confirm("Reset to default sample cards?")) {
+        localStorage.removeItem('twitch_binder_master_db');
+        location.reload();
+      }
+    });
+
     document.getElementById('variantSelect').addEventListener('change', render);
 
-    loadSheetData();
+    initBinder();
   </script>
 </body>
 </html>
