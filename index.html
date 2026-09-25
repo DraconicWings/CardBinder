@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+Here is the updated code!What was updated:Secret Master Editor: Added a new input field (Prismatic_Texture) to the spreadsheet editor table so you can supply a texture URL specifically for the Prismatic card variant.Automated Prismatic Rainbow Shine Effect:Created a continuous sweeping rainbow light animation loop (@keyframes prismaticShine) that automatically glides across the card at a set interval.Combined this moving light gradient with a masked texture layer (using the new URL provided in your admin panel) at a lowered opacity (mix-blend-mode: overlay), ensuring the rainbow effect beautifully catches and adheres to the texture pattern just like your reference.   HTML<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Card Binder</title>
+  <title>Card Binder</title>
   <style>
     :root {
       --bg-dark: #0e0e10;
@@ -135,6 +135,7 @@
       pointer-events: none;
     }
 
+    /* Finish / Shine layers */
     .finish-layer {
       position: absolute;
       top: 0; left: 0; width: 100%; height: 100%;
@@ -149,10 +150,18 @@
       opacity: 1;
     }
 
+    /* Automatic Prismatic Sweep Animation */
+    @keyframes prismaticShine {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
     .card-container.unowned .face-front img {
       filter: grayscale(100%) brightness(0.45);
     }
 
+    /* Modal Overlay */
     .modal-overlay {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
@@ -201,16 +210,7 @@
     }
     .btn-flip:hover { background: var(--accent-hover); }
 
-    /* Centered modal quantity display box */
-    .modal-quantity-box {
-      background: #26262c;
-      padding: 12px;
-      border-radius: 8px;
-      text-align: center;
-      width: 100%;
-      font-weight: 500;
-    }
-
+    /* Secret Admin Modal */
     .admin-modal {
       position: fixed; top: 0; left: 0; right: 0; bottom: 0;
       background: rgba(0,0,0,0.92); z-index: 2000; display: none;
@@ -229,7 +229,7 @@
       flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px;
     }
     .sheet-table {
-      width: 100%; border-collapse: collapse; font-size: 0.9rem;
+      width: 100%; border-collapse: collapse; font-size: 0.85rem;
     }
     .sheet-table th, .sheet-table td {
       border: 1px solid #2d2d35; padding: 8px; text-align: left;
@@ -277,6 +277,7 @@
     </div>
   </main>
 
+  <!-- Zoom Modal -->
   <div class="modal-overlay" id="modalOverlay">
     <div class="modal-box">
       <button class="modal-close" id="modalClose">&times;</button>
@@ -295,13 +296,14 @@
         <h2 id="modalTitle">Card Title</h2>
         <div>Variant: <strong id="modalVariant">Normal</strong></div>
         <button class="btn-flip" id="modalFlipBtn">🔄 Flip Card Front/Back</button>
-        <div class="modal-quantity-box" id="modalQuantity">
+        <div style="background: #26262c; padding: 12px; border-radius: 8px; text-align: center;" id="modalQuantity">
           1x owned
         </div>
       </div>
     </div>
   </div>
 
+  <!-- Secret Spreadsheet Admin Modal -->
   <div class="admin-modal" id="adminModal">
     <div class="admin-box">
       <div class="admin-header">
@@ -309,16 +311,17 @@
         <button class="btn" id="closeAdminBtn">&times; Close</button>
       </div>
       <div class="admin-body">
-        <p style="color: var(--text-muted); font-size: 0.85rem;">Edit your card entries directly below like a spreadsheet. Paste URLs, change Card IDs, or modify names. Click "Save Changes" to apply.</p>
+        <p style="color: var(--text-muted); font-size: 0.85rem;">Configure card details, foil matte masks, and the new Prismatic texture overlay URLs below.</p>
         <table class="sheet-table" id="sheetTable">
           <thead>
             <tr>
-              <th style="width: 120px;">Card_ID</th>
+              <th style="width: 100px;">Card_ID</th>
               <th>Card_Name</th>
               <th>ArtworkURL</th>
               <th>CardBackURL</th>
               <th>Foil_Matte</th>
-              <th style="width: 60px;">Action</th>
+              <th>Prismatic_Texture</th>
+              <th style="width: 50px;">Action</th>
             </tr>
           </thead>
           <tbody id="sheetTableBody">
@@ -347,14 +350,16 @@
         Card_Name: "Celestial Dragon",
         ArtworkURL: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=500",
         CardBackURL: "https://images.unsplash.com/photo-1634017839464-5c339ebe3cb4?w=500",
-        Foil_Matte: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=500"
+        Foil_Matte: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=500",
+        Prismatic_Texture: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=500"
       },
       {
         Card_ID: "CARD-002",
         Card_Name: "Neon Cyber Knight",
         ArtworkURL: "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=500",
         CardBackURL: "https://images.unsplash.com/photo-1634017839464-5c339ebe3cb4?w=500",
-        Foil_Matte: "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=500"
+        Foil_Matte: "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=500",
+        Prismatic_Texture: "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=500"
       }
     ];
 
@@ -383,7 +388,7 @@
         const cardEl = document.createElement('div');
         cardEl.className = `card-container ${isOwned ? '' : 'unowned'}`;
 
-        const finishConfig = getFinishConfig(selectedVariant, card.Foil_Matte);
+        const finishConfig = getFinishConfig(selectedVariant, card);
 
         cardEl.innerHTML = `
           <div class="card-3d-wrapper">
@@ -411,7 +416,7 @@
           const ry = (xc / rect.width) * 18;
           wrapper.style.transform = `rotateX(${rx}deg) rotateY(${ry}deg)`;
 
-          if (finishLayer && selectedVariant !== 'Normal') {
+          if (finishLayer && selectedVariant === 'Foil') {
             const posX = (x / rect.width) * 100;
             const posY = (y / rect.height) * 100;
             finishLayer.style.backgroundPosition = `${posX}% ${posY}%`;
@@ -420,7 +425,7 @@
 
         cardEl.addEventListener('mouseleave', () => {
           wrapper.style.transform = `rotateX(0deg) rotateY(0deg)`;
-          if (finishLayer) finishLayer.style.backgroundPosition = `50% 50%`;
+          if (finishLayer && selectedVariant === 'Foil') finishLayer.style.backgroundPosition = `50% 50%`;
         });
 
         cardEl.addEventListener('click', () => openModal(card, isOwned, selectedVariant));
@@ -428,8 +433,9 @@
       });
     }
 
-    function getFinishConfig(variant, maskUrl) {
+    function getFinishConfig(variant, card) {
       if (variant === 'Foil') {
+        const maskUrl = card.Foil_Matte || card.ArtworkURL;
         return {
           layerStyle: `
             background: linear-gradient(135deg, rgba(160,175,195,0.65) 0%, rgba(255,255,255,1) 28%, rgba(70,80,95,0.8) 55%, rgba(255,255,255,1) 80%, rgba(200,210,225,0.7) 100%);
@@ -446,16 +452,19 @@
           `
         };
       } else if (variant === 'Prismatic') {
+        const textureUrl = card.Prismatic_Texture || card.ArtworkURL;
         return {
           layerStyle: `
-            background: linear-gradient(120deg, rgba(255,0,128,0.45) 0%, rgba(0,255,255,0.45) 33%, rgba(255,255,0,0.45) 66%, rgba(255,0,255,0.45) 100%);
-            background-size: 250% 250%;
+            background: linear-gradient(120deg, rgba(255,0,128,0.5) 0%, rgba(0,255,255,0.5) 25%, rgba(255,255,0,0.5) 50%, rgba(0,255,128,0.5) 75%, rgba(255,0,255,0.5) 100%);
+            background-size: 300% 300%;
+            animation: prismaticShine 5s linear infinite;
             mix-blend-mode: overlay;
-            -webkit-mask-image: url('${maskUrl}');
+            opacity: 0.75;
+            -webkit-mask-image: url('${textureUrl}');
             -webkit-mask-mode: luminance;
             -webkit-mask-size: cover;
             -webkit-mask-position: center;
-            mask-image: url('${maskUrl}');
+            mask-image: url('${textureUrl}');
             mask-mode: luminance;
             mask-size: cover;
             mask-position: center;
@@ -479,7 +488,7 @@
       document.getElementById('modalFrontImg').src = card.ArtworkURL;
       document.getElementById('modalBackImg').src = card.CardBackURL;
 
-      const finishConfig = getFinishConfig(variant, card.Foil_Matte);
+      const finishConfig = getFinishConfig(variant, card);
       document.getElementById('modalFinishLayer').style.cssText = finishConfig.layerStyle;
 
       modalCard.style.transform = 'rotateX(0deg) rotateY(0deg)';
@@ -510,7 +519,7 @@
 
       const currentVariant = document.getElementById('variantSelect').value;
       const modalFinish = document.getElementById('modalFinishLayer');
-      if (modalFinish && currentVariant !== 'Normal') {
+      if (modalFinish && currentVariant === 'Foil') {
         const posX = (x / rect.width) * 100;
         const posY = (y / rect.height) * 100;
         modalFinish.style.backgroundPosition = `${posX}% ${posY}%`;
@@ -558,7 +567,7 @@
       adminModal.classList.add('active');
     }
 
-    function addRowToTable(card = { Card_ID: "", Card_Name: "", ArtworkURL: "", CardBackURL: "", Foil_Matte: "" }) {
+    function addRowToTable(card = { Card_ID: "", Card_Name: "", ArtworkURL: "", CardBackURL: "", Foil_Matte: "", Prismatic_Texture: "" }) {
       const tbody = document.getElementById('sheetTableBody');
       const tr = document.createElement('tr');
       tr.innerHTML = `
@@ -567,6 +576,7 @@
         <td><input type="text" class="edit-art" value="${card.ArtworkURL || ''}" placeholder="https://..."></td>
         <td><input type="text" class="edit-back" value="${card.CardBackURL || ''}" placeholder="https://..."></td>
         <td><input type="text" class="edit-foil" value="${card.Foil_Matte || ''}" placeholder="https://..."></td>
+        <td><input type="text" class="edit-prism" value="${card.Prismatic_Texture || ''}" placeholder="https://..."></td>
         <td><button class="btn btn-danger" style="padding: 4px 8px; font-size:0.8rem;" onclick="this.closest('tr').remove()">X</button></td>
       `;
       tbody.appendChild(tr);
@@ -586,7 +596,8 @@
           Card_Name: row.querySelector('.edit-name').value.trim(),
           ArtworkURL: row.querySelector('.edit-art').value.trim(),
           CardBackURL: row.querySelector('.edit-back').value.trim(),
-          Foil_Matte: row.querySelector('.edit-foil').value.trim()
+          Foil_Matte: row.querySelector('.edit-foil').value.trim(),
+          Prismatic_Texture: row.querySelector('.edit-prism').value.trim()
         });
       });
 
