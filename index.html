@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Card Binder - Master Duel Style</title>
+  <title>Twitch 3D Card Binder - Continuous Rainbow Sheen</title>
   <style>
     :root {
       --bg-dark: #0e0e10;
@@ -16,242 +16,96 @@
       --card-h: 310px;
     }
 
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    }
-
-    body {
-      background-color: var(--bg-dark);
-      color: var(--text);
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
+    body { background-color: var(--bg-dark); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
 
     header {
-      background: #1f1f23;
-      border-bottom: 1px solid #2d2d35;
-      padding: 16px 24px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      position: sticky;
-      top: 0;
-      z-index: 100;
+      background: #1f1f23; border-bottom: 1px solid #2d2d35; padding: 16px 24px;
+      display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100;
     }
+    .brand { font-weight: 800; font-size: 1.2rem; display: flex; align-items: center; gap: 12px; }
+    .hint-tag { font-size: 0.75rem; background: #2d2d35; color: var(--text-muted); padding: 4px 8px; border-radius: 4px; }
+    .controls { display: flex; gap: 12px; }
+    .input-field, .select-field { background: #0e0e10; border: 1px solid #3a3a44; color: var(--text); padding: 8px 12px; border-radius: 6px; outline: none; }
 
-    .brand {
-      font-weight: 800;
-      font-size: 1.2rem;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
+    main { flex: 1; padding: 32px 24px; max-width: 1400px; margin: 0 auto; width: 100%; }
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--card-w), 1fr)); gap: 28px; justify-items: center; }
+    .loading-state { grid-column: 1 / -1; text-align: center; padding: 60px; color: var(--text-muted); font-size: 1.1rem; }
 
-    .hint-tag {
-      font-size: 0.75rem;
-      background: #2d2d35;
-      color: var(--text-muted);
-      padding: 4px 8px;
-      border-radius: 4px;
-      font-weight: normal;
-    }
-
-    .controls {
-      display: flex;
-      gap: 12px;
-    }
-
-    .input-field, .select-field {
-      background: #0e0e10;
-      border: 1px solid #3a3a44;
-      color: var(--text);
-      padding: 8px 12px;
-      border-radius: 6px;
-      outline: none;
-    }
-
-    main {
-      flex: 1;
-      padding: 32px 24px;
-      max-width: 1400px;
-      margin: 0 auto;
-      width: 100%;
-    }
-
-    .card-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(var(--card-w), 1fr));
-      gap: 28px;
-      justify-items: center;
-    }
-
-    .loading-state {
-      grid-column: 1 / -1;
-      text-align: center;
-      padding: 60px;
-      color: var(--text-muted);
-      font-size: 1.1rem;
-    }
-
-    .card-container {
-      width: var(--card-w);
-      height: var(--card-h);
-      perspective: 1000px;
-      cursor: pointer;
-    }
-
+    .card-container { width: var(--card-w); height: var(--card-h); perspective: 1000px; cursor: pointer; }
     .card-3d-wrapper {
-      width: 100%;
-      height: 100%;
-      position: relative;
-      transform-style: preserve-3d;
-      transition: transform 0.1s ease-out;
-      border-radius: 14px;
+      width: 100%; height: 100%; position: relative; transform-style: preserve-3d;
+      transition: transform 0.1s ease-out; border-radius: 14px;
     }
 
     .face {
-      position: absolute;
-      top: 0; left: 0; width: 100%; height: 100%;
-      border-radius: 14px;
-      backface-visibility: hidden !important;
-      -webkit-backface-visibility: hidden !important;
-      overflow: hidden;
-      background: #18181b;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.7);
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      border-radius: 14px; backface-visibility: hidden !important; -webkit-backface-visibility: hidden !important;
+      overflow: hidden; background: #18181b; box-shadow: 0 10px 25px rgba(0,0,0,0.7);
     }
-
     .face-front { z-index: 2; transform: rotateY(0deg); }
     .face-back { z-index: 1; transform: rotateY(180deg); }
+    .card-img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }
 
-    .card-img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-      pointer-events: none;
-    }
-
-    /* Master Duel Style Foil / Prismatic Finish Layers */
-    .finish-layer {
-      position: absolute;
-      top: 0; left: 0; width: 100%; height: 100%;
-      pointer-events: none;
-      z-index: 3;
-      opacity: 0;
-      transition: opacity 0.3s ease;
-    }
-
-    .card-container:hover .finish-layer,
-    .modal-card-stage:hover .finish-layer {
-      opacity: 1;
-    }
-
-    /* Continuous diagonal sheen animation loop */
-    @keyframes masterDuelShine {
+    /* Continuous Moving Rainbow Sheen Animation */
+    @keyframes rainbowMove {
       0% { background-position: 0% 50%; }
       50% { background-position: 100% 50%; }
       100% { background-position: 0% 50%; }
     }
 
-    .card-container.unowned .face-front img {
-      filter: grayscale(100%) brightness(0.45);
+    .finish-layer {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      pointer-events: none; z-index: 3; opacity: 0; transition: opacity 0.3s ease;
     }
+
+    .card-container:hover .finish-layer,
+    .modal-card-stage:hover .finish-layer { opacity: 0.9; }
+
+    .card-container.unowned .face-front img { filter: grayscale(100%) brightness(0.45); }
 
     /* Modal Overlay */
     .modal-overlay {
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.85);
-      backdrop-filter: blur(8px);
-      z-index: 1000;
-      display: none;
-      justify-content: center;
-      align-items: center;
-      padding: 20px;
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); z-index: 1000;
+      display: none; justify-content: center; align-items: center; padding: 20px;
     }
     .modal-overlay.active { display: flex; }
     .modal-box {
-      background: #18181b;
-      border: 1px solid #2d2d35;
-      border-radius: 18px;
-      width: 100%;
-      max-width: 760px;
-      display: flex;
-      flex-wrap: wrap;
-      position: relative;
-      overflow: hidden;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.8);
+      background: #18181b; border: 1px solid #2d2d35; border-radius: 18px;
+      width: 100%; max-width: 760px; display: flex; flex-wrap: wrap; position: relative; overflow: hidden;
     }
     .modal-close {
-      position: absolute;
-      top: 14px; right: 14px;
-      background: #2d2d35; color: #fff; border: none;
-      width: 34px; height: 34px; border-radius: 50%;
-      cursor: pointer; z-index: 10; font-size: 18px;
+      position: absolute; top: 14px; right: 14px; background: #2d2d35; color: #fff; border: none;
+      width: 34px; height: 34px; border-radius: 50%; cursor: pointer; z-index: 10;
       display: flex; align-items: center; justify-content: center;
     }
     .modal-card-stage {
-      flex: 1; min-width: 320px; height: 460px;
-      background: #09090b; display: flex; align-items: center;
-      justify-content: center; perspective: 1200px; padding: 20px;
+      flex: 1; min-width: 320px; height: 460px; background: #09090b;
+      display: flex; align-items: center; justify-content: center; perspective: 1200px; padding: 20px;
     }
     .modal-card-stage .card-3d-wrapper { width: 250px; height: 350px; }
-    .modal-details {
-      flex: 1; min-width: 260px; padding: 36px;
-      display: flex; flex-direction: column; justify-content: center; gap: 18px;
-    }
-    .btn-flip {
-      background: var(--accent); color: white; border: none;
-      padding: 12px; border-radius: 8px; font-weight: 700; cursor: pointer;
-    }
+    .modal-details { flex: 1; min-width: 260px; padding: 36px; display: flex; flex-direction: column; justify-content: center; gap: 18px; }
+    .btn-flip { background: var(--accent); color: white; border: none; padding: 12px; border-radius: 8px; font-weight: 700; cursor: pointer; }
     .btn-flip:hover { background: var(--accent-hover); }
 
-    /* Secret Admin Modal */
+    /* Admin Sheet Modal */
     .admin-modal {
-      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.92); z-index: 2000; display: none;
-      justify-content: center; align-items: center; padding: 20px;
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.92); z-index: 2000;
+      display: none; justify-content: center; align-items: center; padding: 20px;
     }
     .admin-modal.active { display: flex; }
-    .admin-box {
-      background: #18181b; border: 1px solid #3a3a44; border-radius: 14px;
-      width: 100%; max-width: 1100px; height: 85vh; display: flex; flex-direction: column; overflow: hidden;
-    }
-    .admin-header {
-      background: #1f1f23; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center;
-      border-bottom: 1px solid #2d2d35;
-    }
-    .admin-body {
-      flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px;
-    }
-    .sheet-table {
-      width: 100%; border-collapse: collapse; font-size: 0.85rem;
-    }
-    .sheet-table th, .sheet-table td {
-      border: 1px solid #2d2d35; padding: 8px; text-align: left;
-    }
-    .sheet-table th { background: #26262c; color: var(--text-muted); font-weight: 600; }
-    .sheet-table input {
-      width: 100%; background: #0e0e10; border: 1px solid transparent; color: #fff;
-      padding: 6px; border-radius: 4px; outline: none;
-    }
-    .sheet-table input:focus { border-color: var(--accent); background: #000; }
-    .admin-footer {
-      padding: 16px 20px; background: #1f1f23; border-top: 1px solid #2d2d35;
-      display: flex; justify-content: space-between; align-items: center;
-    }
-    .btn {
-      background: #2d2d35; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600;
-    }
-    .btn:hover { background: #3a3a44; }
+    .admin-box { background: #18181b; border: 1px solid #3a3a44; border-radius: 14px; width: 100%; max-width: 1100px; height: 85vh; display: flex; flex-direction: column; overflow: hidden; }
+    .admin-header { background: #1f1f23; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #2d2d35; }
+    .admin-body { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+    .sheet-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    .sheet-table th, .sheet-table td { border: 1px solid #2d2d35; padding: 8px; text-align: left; }
+    .sheet-table th { background: #26262c; color: var(--text-muted); }
+    .sheet-table input { width: 100%; background: #0e0e10; border: 1px solid transparent; color: #fff; padding: 6px; border-radius: 4px; outline: none; }
+    .admin-footer { padding: 16px 20px; background: #1f1f23; border-top: 1px solid #2d2d35; display: flex; justify-content: space-between; align-items: center; }
+    .btn { background: #2d2d35; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; }
     .btn-primary { background: var(--accent); }
-    .btn-primary:hover { background: var(--accent-hover); }
     .btn-danger { background: #5a2020; }
-    .btn-danger:hover { background: #7a2828; }
   </style>
 </head>
 <body>
@@ -259,7 +113,7 @@
   <header>
     <div class="brand">
       <span>Twitch Card Binder</span>
-      <span class="hint-tag">Secret trigger: Type "matrix" anywhere</span>
+      <span class="hint-tag">Type "matrix" for Editor</span>
     </div>
     <div class="controls">
       <input type="text" id="userInput" class="input-field" placeholder="Twitch Username..." value="StreamerOne">
@@ -295,10 +149,8 @@
       <div class="modal-details">
         <h2 id="modalTitle">Card Title</h2>
         <div>Variant: <strong id="modalVariant">Normal</strong></div>
-        <button class="btn-flip" id="modalFlipBtn">🔄 Flip Card Front/Back</button>
-        <div style="background: #26262c; padding: 12px; border-radius: 8px; text-align: center;" id="modalQuantity">
-          1x owned
-        </div>
+        <button class="btn-flip" id="modalFlipBtn">🔄 Flip Card</button>
+        <div style="background: #26262c; padding: 12px; border-radius: 8px; text-align: center;" id="modalQuantity">1x owned</div>
       </div>
     </div>
   </div>
@@ -307,58 +159,38 @@
   <div class="admin-modal" id="adminModal">
     <div class="admin-box">
       <div class="admin-header">
-        <h3>📊 Secret Master Spreadsheet Editor</h3>
+        <h3>📊 Master Spreadsheet Editor</h3>
         <button class="btn" id="closeAdminBtn">&times; Close</button>
       </div>
       <div class="admin-body">
-        <p style="color: var(--text-muted); font-size: 0.85rem;">Configure card details, foil matte masks, and Prismatic texture overlay URLs below.</p>
         <table class="sheet-table" id="sheetTable">
           <thead>
             <tr>
-              <th style="width: 100px;">Card_ID</th>
-              <th>Card_Name</th>
-              <th>ArtworkURL</th>
-              <th>CardBackURL</th>
-              <th>Foil_Matte</th>
-              <th>Prismatic_Texture</th>
-              <th style="width: 50px;">Action</th>
+              <th style="width: 90px;">ID</th><th>Name</th><th>Artwork URL</th><th>Back URL</th><th>Foil Matte</th><th>Prismatic Tex</th><th style="width: 40px;">X</th>
             </tr>
           </thead>
-          <tbody id="sheetTableBody">
-            <!-- Dynamic rows populated via JS -->
-          </tbody>
+          <tbody id="sheetTableBody"></tbody>
         </table>
-        <button class="btn" id="addRowBtn" style="margin-top: 8px;">+ Add New Row</button>
+        <button class="btn" id="addRowBtn" style="margin-top: 8px;">+ Add Row</button>
       </div>
       <div class="admin-footer">
-        <button class="btn btn-danger" id="resetDefaultBtn">Reset to Defaults</button>
+        <button class="btn btn-danger" id="resetDefaultBtn">Reset Defaults</button>
         <div style="display: flex; gap: 10px;">
           <button class="btn" id="cancelAdminBtn">Cancel</button>
-          <button class="btn btn-primary" id="saveAdminBtn">Save & Apply Changes</button>
+          <button class="btn btn-primary" id="saveAdminBtn">Save Changes</button>
         </div>
       </div>
     </div>
   </div>
 
   <script>
-    // ==========================================
-    // 🌟 MASTER CARD DATABASE
-    // ==========================================
     let masterCards = [
       {
         Card_ID: "CARD-001",
         Card_Name: "Celestial Dragon",
         ArtworkURL: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=500",
         CardBackURL: "https://images.unsplash.com/photo-1634017839464-5c339ebe3cb4?w=500",
-        Foil_Matte: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=500",
-        Prismatic_Texture: ""
-      },
-      {
-        Card_ID: "CARD-002",
-        Card_Name: "Neon Cyber Knight",
-        ArtworkURL: "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=500",
-        CardBackURL: "https://images.unsplash.com/photo-1634017839464-5c339ebe3cb4?w=500",
-        Foil_Matte: "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=500",
+        Foil_Matte: "",
         Prismatic_Texture: ""
       }
     ];
@@ -367,34 +199,25 @@
 
     function initBinder() {
       const saved = localStorage.getItem('twitch_binder_master_db');
-      if (saved) {
-        try { masterCards = JSON.parse(saved); } catch(e) {}
-      }
+      if (saved) { try { masterCards = JSON.parse(saved); } catch(e) {} }
       render();
     }
 
     function render() {
       const grid = document.getElementById('cardGrid');
-      const selectedVariant = document.getElementById('variantSelect').value;
+      const variant = document.getElementById('variantSelect').value;
       grid.innerHTML = '';
-
-      if (masterCards.length === 0) {
-        grid.innerHTML = `<div class="loading-state">No cards in master database. Type "matrix" anywhere to open the editor!</div>`;
-        return;
-      }
 
       masterCards.forEach((card, index) => {
         const isOwned = (index % 2 === 0);
         const cardEl = document.createElement('div');
         cardEl.className = `card-container ${isOwned ? '' : 'unowned'}`;
 
-        const finishConfig = getFinishConfig(selectedVariant, card);
-
         cardEl.innerHTML = `
           <div class="card-3d-wrapper">
             <div class="face face-front">
               <img class="card-img" src="${card.ArtworkURL}" alt="${card.Card_Name}">
-              <div class="finish-layer" style="${finishConfig}"></div>
+              <div class="finish-layer" style="${getFinishConfig(variant, card)}"></div>
             </div>
             <div class="face face-back">
               <img class="card-img" src="${card.CardBackURL}" alt="Back">
@@ -403,62 +226,44 @@
         `;
 
         const wrapper = cardEl.querySelector('.card-3d-wrapper');
-
         cardEl.addEventListener('mousemove', (e) => {
           const rect = cardEl.getBoundingClientRect();
-          const x = e.clientX - rect.left;
-          const y = e.clientY - rect.top;
-          const xc = x - rect.width / 2;
-          const yc = y - rect.height / 2;
-
-          const rx = (-yc / rect.height) * 18;
-          const ry = (xc / rect.width) * 18;
-          wrapper.style.transform = `rotateX(${rx}deg) rotateY(${ry}deg)`;
+          const xc = (e.clientX - rect.left) - rect.width / 2;
+          const yc = (e.clientY - rect.top) - rect.height / 2;
+          wrapper.style.transform = `rotateX(${(-yc / rect.height) * 14}deg) rotateY(${(xc / rect.width) * 14}deg)`;
         });
-
-        cardEl.addEventListener('mouseleave', () => {
-          wrapper.style.transform = `rotateX(0deg) rotateY(0deg)`;
-        });
-
-        cardEl.addEventListener('click', () => openModal(card, isOwned, selectedVariant));
+        cardEl.addEventListener('mouseleave', () => wrapper.style.transform = `rotateX(0deg) rotateY(0deg)`);
+        cardEl.addEventListener('click', () => openModal(card, isOwned, variant));
         grid.appendChild(cardEl);
       });
     }
 
     function getFinishConfig(variant, card) {
       if (variant === 'Foil') {
-        const maskUrl = card.Foil_Matte || card.ArtworkURL;
         return `
-          background: linear-gradient(125deg, rgba(255,255,255,0) 25%, rgba(255,255,255,0.45) 50%, rgba(255,255,255,0) 75%);
+          background: linear-gradient(120deg, transparent 30%, rgba(255,255,255,0.35) 50%, transparent 70%);
           background-size: 250% 250%;
-          background-position: 50% 50%;
-          animation: masterDuelShine 4s ease infinite;
+          animation: rainbowMove 4s ease infinite;
           mix-blend-mode: overlay;
-          -webkit-mask-image: url('${maskUrl}');
-          -webkit-mask-mode: luminance;
-          -webkit-mask-size: cover;
-          -webkit-mask-position: center;
-          mask-image: url('${maskUrl}');
-          mask-mode: luminance;
-          mask-size: cover;
-          mask-position: center;
         `;
       } else if (variant === 'Prismatic') {
-        const textureUrl = card.Prismatic_Texture || "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=500";
+        // Continuous moving multi-color rainbow spectrum using soft light/screen blend to prevent flashbanging
         return `
-          background: 
-            linear-gradient(125deg, rgba(255,0,128,0.2), rgba(0,255,255,0.2), rgba(255,255,0,0.2), rgba(0,255,128,0.2)),
-            url('${textureUrl}');
-          background-size: 300% 300%, cover;
-          background-position: 0% 50%, center;
-          animation: masterDuelShine 6s linear infinite;
-          mix-blend-mode: color-dodge;
+          background: linear-gradient(110deg, 
+            rgba(255, 0, 128, 0.25), 
+            rgba(0, 255, 255, 0.25), 
+            rgba(255, 255, 0, 0.25), 
+            rgba(0, 255, 128, 0.25), 
+            rgba(255, 0, 128, 0.25)
+          );
+          background-size: 300% 300%;
+          animation: rainbowMove 5s linear infinite;
+          mix-blend-mode: screen;
         `;
       }
       return 'display: none;';
     }
 
-    // Modal Mechanics
     const modalOverlay = document.getElementById('modalOverlay');
     const modalCard = document.getElementById('modalCard');
     const modalStage = document.getElementById('modalStage');
@@ -468,21 +273,14 @@
       document.getElementById('modalTitle').innerText = card.Card_Name;
       document.getElementById('modalVariant').innerText = variant;
       document.getElementById('modalQuantity').innerText = isOwned ? '1x owned' : '0x owned';
-
       document.getElementById('modalFrontImg').src = card.ArtworkURL;
       document.getElementById('modalBackImg').src = card.CardBackURL;
-
-      const finishConfig = getFinishConfig(variant, card);
-      document.getElementById('modalFinishLayer').style.cssText = finishConfig;
-
+      document.getElementById('modalFinishLayer').style.cssText = getFinishConfig(variant, card);
       modalCard.style.transform = 'rotateX(0deg) rotateY(0deg)';
       modalOverlay.classList.add('active');
     }
 
-    document.getElementById('modalClose').addEventListener('click', () => {
-      modalOverlay.classList.remove('active');
-    });
-
+    document.getElementById('modalClose').addEventListener('click', () => modalOverlay.classList.remove('active'));
     document.getElementById('modalFlipBtn').addEventListener('click', () => {
       isFlipped = !isFlipped;
       modalCard.style.transform = isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)';
@@ -490,109 +288,60 @@
 
     modalStage.addEventListener('mousemove', (e) => {
       const rect = modalStage.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-      const xc = x - rect.width / 2;
-      const yc = y - rect.height / 2;
-
-      const rx = (-yc / rect.height) * 18;
-      const ry = (xc / rect.width) * 18;
-
-      const baseAngle = isFlipped ? 180 : 0;
-      modalCard.style.transform = `rotateX(${rx}deg) rotateY(${baseAngle + ry}deg)`;
+      const xc = (e.clientX - rect.left) - rect.width / 2;
+      const yc = (e.clientY - rect.top) - rect.height / 2;
+      modalCard.style.transform = `rotateX(${(-yc / rect.height) * 14}deg) rotateY(${(isFlipped ? 180 : 0) + (xc / rect.width) * 14}deg)`;
     });
+    modalStage.addEventListener('mouseleave', () => modalCard.style.transform = isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)');
 
-    modalStage.addEventListener('mouseleave', () => {
-      modalCard.style.transform = isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)';
-    });
-
-    // ==========================================
-    // 🕵️‍♂️ SECRET CHEAT-CODE TRIGGER & SPREADSHEET EDITOR
-    // ==========================================
+    // Admin Editor Code
     let typedBuffer = "";
-    const secretCode = "matrix";
-    const adminModal = document.getElementById('adminModal');
-
     window.addEventListener('keydown', (e) => {
       if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) return;
-      
-      typedBuffer += e.key.toLowerCase();
-      if (typedBuffer.length > secretCode.length) {
-        typedBuffer = typedBuffer.slice(-secretCode.length);
-      }
-      
-      if (typedBuffer === secretCode) {
-        typedBuffer = "";
-        const password = prompt("🔒 Enter Admin Password:");
-        if (password === "secret123") {
-          openAdminEditor();
-        } else if (password !== null) {
-          alert("Incorrect password.");
-        }
+      typedBuffer = (typedBuffer + e.key.toLowerCase()).slice(-6);
+      if (typedBuffer === "matrix" && prompt("🔒 Password:") === "secret123") {
+        const tbody = document.getElementById('sheetTableBody');
+        tbody.innerHTML = '';
+        masterCards.forEach(c => addRow(c));
+        document.getElementById('adminModal').classList.add('active');
       }
     });
 
-    function openAdminEditor() {
-      const tbody = document.getElementById('sheetTableBody');
-      tbody.innerHTML = '';
-      
-      masterCards.forEach((card) => {
-        addRowToTable(card);
-      });
-      
-      adminModal.classList.add('active');
-    }
-
-    function addRowToTable(card = { Card_ID: "", Card_Name: "", ArtworkURL: "", CardBackURL: "", Foil_Matte: "", Prismatic_Texture: "" }) {
-      const tbody = document.getElementById('sheetTableBody');
+    function addRow(c = {}) {
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td><input type="text" class="edit-id" value="${card.Card_ID || ''}" placeholder="CARD-00X"></td>
-        <td><input type="text" class="edit-name" value="${card.Card_Name || ''}" placeholder="Card Name"></td>
-        <td><input type="text" class="edit-art" value="${card.ArtworkURL || ''}" placeholder="https://..."></td>
-        <td><input type="text" class="edit-back" value="${card.CardBackURL || ''}" placeholder="https://..."></td>
-        <td><input type="text" class="edit-foil" value="${card.Foil_Matte || ''}" placeholder="https://..."></td>
-        <td><input type="text" class="edit-prism" value="${card.Prismatic_Texture || ''}" placeholder="https://..."></td>
-        <td><button class="btn btn-danger" style="padding: 4px 8px; font-size:0.8rem;" onclick="this.closest('tr').remove()">X</button></td>
+        <td><input class="e-id" value="${c.Card_ID || ''}"></td>
+        <td><input class="e-name" value="${c.Card_Name || ''}"></td>
+        <td><input class="e-art" value="${c.ArtworkURL || ''}"></td>
+        <td><input class="e-back" value="${c.CardBackURL || ''}"></td>
+        <td><input class="e-foil" value="${c.Foil_Matte || ''}"></td>
+        <td><input class="e-prism" value="${c.Prismatic_Texture || ''}"></td>
+        <td><button class="btn btn-danger" style="padding: 2px 6px;" onclick="this.closest('tr').remove()">X</button></td>
       `;
-      tbody.appendChild(tr);
+      document.getElementById('sheetTableBody').appendChild(tr);
     }
 
-    document.getElementById('addRowBtn').addEventListener('click', () => addRowToTable());
-    document.getElementById('closeAdminBtn').addEventListener('click', () => adminModal.classList.remove('active'));
-    document.getElementById('cancelAdminBtn').addEventListener('click', () => adminModal.classList.remove('active'));
-
+    document.getElementById('addRowBtn').addEventListener('click', () => addRow());
+    document.getElementById('closeAdminBtn').addEventListener('click', () => document.getElementById('adminModal').classList.remove('active'));
+    document.getElementById('cancelAdminBtn').addEventListener('click', () => document.getElementById('adminModal').classList.remove('active'));
     document.getElementById('saveAdminBtn').addEventListener('click', () => {
-      const rows = document.querySelectorAll('#sheetTableBody tr');
-      const newCards = [];
-
-      rows.forEach(row => {
-        newCards.push({
-          Card_ID: row.querySelector('.edit-id').value.trim(),
-          Card_Name: row.querySelector('.edit-name').value.trim(),
-          ArtworkURL: row.querySelector('.edit-art').value.trim(),
-          CardBackURL: row.querySelector('.edit-back').value.trim(),
-          Foil_Matte: row.querySelector('.edit-foil').value.trim(),
-          Prismatic_Texture: row.querySelector('.edit-prism').value.trim()
-        });
-      });
-
-      masterCards = newCards;
+      masterCards = Array.from(document.querySelectorAll('#sheetTableBody tr')).map(row => ({
+        Card_ID: row.querySelector('.e-id').value.trim(),
+        Card_Name: row.querySelector('.e-name').value.trim(),
+        ArtworkURL: row.querySelector('.e-art').value.trim(),
+        CardBackURL: row.querySelector('.e-back').value.trim(),
+        Foil_Matte: row.querySelector('.e-foil').value.trim(),
+        Prismatic_Texture: row.querySelector('.e-prism').value.trim()
+      }));
       localStorage.setItem('twitch_binder_master_db', JSON.stringify(masterCards));
-      adminModal.classList.remove('active');
+      document.getElementById('adminModal').classList.remove('active');
       render();
-      alert("Master database updated successfully!");
     });
-
     document.getElementById('resetDefaultBtn').addEventListener('click', () => {
-      if (confirm("Reset to default sample cards?")) {
-        localStorage.removeItem('twitch_binder_master_db');
-        location.reload();
-      }
+      if (confirm("Reset?")) { localStorage.removeItem('twitch_binder_master_db'); location.reload(); }
     });
 
     document.getElementById('variantSelect').addEventListener('change', render);
-
     initBinder();
   </script>
 </body>
