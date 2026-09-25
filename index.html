@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Twitch 3D Card Binder - Tilt-Reactive Metallic Foil</title>
+  <title>Twitch 3D Card Binder - Masked Tilt Foil</title>
   <style>
     :root {
       --bg-dark: #0e0e10;
@@ -231,10 +231,8 @@
           const xc = x - rect.width / 2;
           const yc = y - rect.height / 2;
 
-          // Tilt transformation
           wrapper.style.transform = `rotateX(${(-yc / rect.height) * 14}deg) rotateY(${(xc / rect.width) * 14}deg)`;
 
-          // Tilt-reactive metallic offset coordinate calculation for Foil
           if (variant === 'Foil') {
             const posX = (x / rect.width) * 100;
             const posY = (y / rect.height) * 100;
@@ -257,17 +255,19 @@
     function getFinishConfig(variant, card, posX = 50, posY = 50) {
       if (variant === 'Foil') {
         const matteUrl = card.Foil_Matte ? card.Foil_Matte : card.ArtworkURL;
-        // Subdued metallic silver with high-contrast darker tone shading inside masked matte areas
+        // Strictly masked metallic sheen using alpha channel to target only matte shapes
         return `
           background: radial-gradient(circle at ${posX}% ${posY}%, 
-            rgba(235, 235, 235, 0.75) 0%, 
-            rgba(120, 120, 120, 0.45) 35%, 
-            rgba(45, 45, 45, 0.85) 75%
+            rgba(240, 240, 240, 0.9) 0%, 
+            rgba(150, 150, 150, 0.6) 40%, 
+            rgba(50, 50, 50, 0.9) 80%
           );
           background-size: 200% 200%;
           background-position: ${posX}% ${posY}%;
           -webkit-mask-image: url('${matteUrl}');
           mask-image: url('${matteUrl}');
+          -webkit-mask-mode: alpha;
+          mask-mode: alpha;
           -webkit-mask-size: cover;
           mask-size: cover;
           -webkit-mask-position: center;
