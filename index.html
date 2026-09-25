@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Twitch 3D Card Binder - Vibrant Oscillating Sheen</title>
+  <title>Card Binder - Restored Foil Sheen</title>
   <style>
     :root {
       --bg-dark: #0e0e10;
@@ -47,7 +47,7 @@
     .face-back { z-index: 1; transform: rotateY(180deg); }
     .card-img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }
 
-    /* Smooth back-and-forth oscillation */
+    /* Smooth back-and-forth oscillation loop */
     @keyframes oscillateSheen {
       0% { background-position: 0% 50%; }
       100% { background-position: 100% 50%; }
@@ -56,7 +56,7 @@
     .finish-layer {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
       pointer-events: none; z-index: 3; 
-      opacity: 0.8; /* Clearly visible by default */
+      opacity: 0.8;
       transition: opacity 0.3s ease;
     }
 
@@ -241,14 +241,14 @@
 
     function getFinishConfig(variant, card) {
       if (variant === 'Foil') {
+        // Restored original approved foil look, utilizing smooth back-and-forth oscillation
         return `
-          background: linear-gradient(115deg, transparent 20%, rgba(255,255,255,0.45) 50%, transparent 80%);
+          background: linear-gradient(115deg, transparent 20%, rgba(255,255,255,0.7) 45%, rgba(255,255,255,0.9) 50%, rgba(255,255,255,0.7) 55%, transparent 80%);
           background-size: 250% 100%;
           animation: oscillateSheen 5s ease-in-out infinite alternate;
           mix-blend-mode: overlay;
         `;
       } else if (variant === 'Prismatic') {
-        // Rich, highly visible color spectrum using overlay blending to protect artwork tones
         return `
           background: linear-gradient(115deg, 
             rgba(255, 50, 150, 0.45), 
