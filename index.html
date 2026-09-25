@@ -1,12 +1,9 @@
-Here is the full, complete code with your new gem-texture prismatic spotlight effect integrated, while keeping your locked foil code untouched:
-HTML
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Twitch 3D Card Binder - Prismatic Gem Spotlight</title>
+  <title>Card Binder - Prismatic Gem & Rainbow</title>
   <style>
     :root {
       --bg-dark: #0e0e10;
@@ -49,6 +46,11 @@ HTML
     .face-front { z-index: 2; transform: rotateY(0deg); }
     .face-back { z-index: 1; transform: rotateY(180deg); }
     .card-img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }
+
+    @keyframes oscillateSheen {
+      0% { background-position: 0% 50%; }
+      100% { background-position: 100% 50%; }
+    }
 
     .finish-layer {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
@@ -233,8 +235,9 @@ HTML
           if ((variant === 'Foil' && card.Foil_Matte) || (variant === 'Prismatic' && card.Prismatic_Texture)) {
             const posX = (x / rect.width) * 100;
             const posY = (y / rect.height) * 100;
-            finishLayer.style.backgroundPosition = variant === 'Foil' ? `${posX}% ${posY}%` : `center, center`;
-            if (variant === 'Prismatic') {
+            if (variant === 'Foil') {
+              finishLayer.style.backgroundPosition = `${posX}% ${posY}%`;
+            } else if (variant === 'Prismatic') {
               finishLayer.style.cssText = getFinishConfig(variant, card, posX, posY);
             }
           }
@@ -279,17 +282,25 @@ HTML
         `;
       } else if (variant === 'Prismatic') {
         if (!card.Prismatic_Texture) return 'display: none;';
-        // --- PRISMATIC GEM SPOTLIGHT CONFIG ---
+        // --- PRISMATIC GEM TEXTURE + OSCILLATING RAINBOW + MOUSE SPOTLIGHT ---
         return `
           background: 
             radial-gradient(circle at ${posX}% ${posY}%, 
-              rgba(160, 130, 255, 0.85) 0%, 
-              rgba(80, 160, 255, 0.5) 35%, 
-              transparent 70%
+              rgba(150, 110, 255, 0.75) 0%, 
+              rgba(70, 150, 255, 0.4) 30%, 
+              transparent 65%
             ),
-            linear-gradient(135deg, rgba(120, 90, 255, 0.35), rgba(70, 180, 255, 0.35));
-          background-size: cover, cover;
-          background-position: center, center;
+            linear-gradient(115deg, 
+              rgba(255, 50, 150, 0.22), 
+              rgba(50, 200, 255, 0.22), 
+              rgba(255, 230, 50, 0.22), 
+              rgba(50, 255, 150, 0.22), 
+              rgba(255, 50, 150, 0.22)
+            ),
+            linear-gradient(135deg, rgba(100, 70, 220, 0.2), rgba(50, 150, 220, 0.2));
+          background-size: 100% 100%, 300% 100%, 100% 100%;
+          background-position: center, 0% 50%, center;
+          animation: oscillateSheen 6s ease-in-out infinite alternate;
           -webkit-mask-image: url('${card.Prismatic_Texture}');
           mask-image: url('${card.Prismatic_Texture}');
           -webkit-mask-mode: luminance;
@@ -298,7 +309,7 @@ HTML
           mask-size: cover;
           -webkit-mask-position: center;
           mask-position: center;
-          mix-blend-mode: color-dodge;
+          mix-blend-mode: overlay;
         `;
       }
       return 'display: none;';
