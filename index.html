@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Card Binder - Prismatic Sheen</title>
+  <title>Twitch 3D Card Binder - Subtle Prismatic</title>
   <style>
     :root {
       --bg-dark: #0e0e10;
@@ -54,8 +54,9 @@
 
     .finish-layer {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-      pointer-events: none; z-index: 3; opacity: 1;
+      pointer-events: none; z-index: 3; opacity: 0; transition: opacity 0.3s ease;
     }
+    .card-container:hover .finish-layer { opacity: 1; }
 
     .card-container.unowned .face-front img { filter: grayscale(100%) brightness(0.45); }
 
@@ -282,21 +283,20 @@
         `;
       } else if (variant === 'Prismatic') {
         if (!card.Prismatic_Texture) return 'display: none;';
-        // --- PRISMATIC WITH VIBRANT RAINBOW INTENSIFIER SPOTLIGHT ---
+        // --- SUBTLE PRISMATIC SPOTLIGHT ON HOVER ---
         return `
           background: 
             radial-gradient(circle at ${posX}% ${posY}%, 
-              rgba(255, 100, 220, 0.6) 0%, 
-              rgba(100, 220, 255, 0.45) 30%, 
-              rgba(255, 220, 100, 0.2) 60%, 
-              transparent 80%
+              rgba(255, 120, 220, 0.35) 0%, 
+              rgba(120, 220, 255, 0.25) 35%, 
+              transparent 70%
             ),
             linear-gradient(115deg, 
-              rgba(255, 40, 140, 0.35), 
-              rgba(40, 210, 255, 0.35), 
-              rgba(255, 220, 40, 0.35), 
-              rgba(40, 255, 140, 0.35), 
-              rgba(255, 40, 140, 0.35)
+              rgba(255, 40, 140, 0.22), 
+              rgba(40, 210, 255, 0.22), 
+              rgba(255, 220, 40, 0.22), 
+              rgba(40, 255, 140, 0.22), 
+              rgba(255, 40, 140, 0.22)
             );
           background-size: 100% 100%, 250% 100%;
           background-position: center, 0% 50%;
