@@ -289,8 +289,8 @@
         <h2 id="modalTitle">Card Title</h2>
         <div>Variant: <strong id="modalVariant">Normal</strong></div>
         <button class="btn-flip" id="modalFlipBtn">🔄 Flip Card Front/Back</button>
-        <div style="background: #26262c; padding: 12px; border-radius: 8px;">
-          Quantity Owned: <strong id="modalQuantity">1x</strong>
+        <div style="background: #26262c; padding: 12px; border-radius: 8px;" id="modalQuantity">
+          1x owned
         </div>
       </div>
     </div>
@@ -470,7 +470,7 @@
       isFlipped = false;
       document.getElementById('modalTitle').innerText = card.Card_Name;
       document.getElementById('modalVariant').innerText = variant;
-      document.getElementById('modalQuantity').innerText = isOwned ? '1x Owned' : '0x Unowned';
+      document.getElementById('modalQuantity').innerText = isOwned ? '1x owned' : '0x owned';
 
       document.getElementById('modalFrontImg').src = card.ArtworkURL;
       document.getElementById('modalBackImg').src = card.CardBackURL;
