@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Card Binder - Precise Masked Foil</title>
+  <title>Twitch 3D Card Binder - Robust Matte Foil</title>
   <style>
     :root {
       --bg-dark: #0e0e10;
@@ -47,15 +47,34 @@
     .face-back { z-index: 1; transform: rotateY(180deg); }
     .card-img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }
 
-    /* Prismatic oscillation animation (Locked) */
+    /* Prismatic animation */
     @keyframes oscillateSheen {
       0% { background-position: 0% 50%; }
       100% { background-position: 100% 50%; }
     }
 
+    /* Foil Container Layer */
     .finish-layer {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-      pointer-events: none; z-index: 3; opacity: 1;
+      pointer-events: none; z-index: 3; overflow: hidden; display: none;
+    }
+    .finish-layer.active { display: block; }
+
+    /* The moving metallic sheen */
+    .foil-sheen {
+      position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+      background: radial-gradient(circle at 50% 50%, 
+        rgba(240, 240, 240, 0.9) 0%, 
+        rgba(140, 140, 140, 0.6) 40%, 
+        rgba(40, 40, 40, 0.8) 80%
+      );
+      mix-blend-mode: overlay;
+    }
+
+    /* The Matte Alpha Mask Image */
+    .foil-mask-img {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      object-fit: cover; mix-blend-mode: destination-in; pointer-events: none;
     }
 
     .card-container.unowned .face-front img { filter: grayscale(100%) brightness(0.45); }
@@ -135,7 +154,10 @@
         <div class="card-3d-wrapper" id="modalCard">
           <div class="face face-front">
             <img class="card-img" id="modalFrontImg" src="" alt="Front">
-            <div class="finish-layer" id="modalFinishLayer"></div>
+            <div class="finish-layer" id="modalFinishLayer">
+              <div class="foil-sheen" id="modalFoilSheen"></div>
+              <img class="foil-mask-img" id="modalMaskImg" src="" alt="">
+            </div>
           </div>
           <div class="face face-back">
             <img class="card-img" id="modalBackImg" src="" alt="Back">
@@ -184,10 +206,10 @@
       {
         Card_ID: "CARD-001",
         Card_Name: "Teatime with Stitchy",
-        ArtworkURL: "https://i.imgur.com/rarZMX",
-        CardBackURL: "https://i.imgur.com/GaFZUI",
-        Foil_Matte: "https://i.imgur.com/9AywIF",
-        Prismatic_Texture: "https://i.imgur.com/bh6XZL"
+        ArtworkURL: "https://i.imgur.com/rarZMX.png",
+        CardBackURL: "https://i.imgur.com/GaFZUI.png",
+        Foil_Matte: "https://i.imgur.com/9AywIF.png",
+        Prismatic_Texture: "https://i.imgur.com/bh6XZL.png"
       }
     ];
 
@@ -209,11 +231,25 @@
         const cardEl = document.createElement('div');
         cardEl.className = `card-container ${isOwned ? '' : 'unowned'}`;
 
+        let finishHTML = '';
+        if (variant === 'Foil' && card.Foil_Matte) {
+          finishHTML = `
+            <div class="finish-layer active">
+              <div class="foil-sheen"></div>
+              <img class="foil-mask-img" src="${card.Foil_Matte}" alt="">
+            </div>
+          `;
+        } else if (variant === 'Prismatic') {
+          finishHTML = `
+            <div class="finish-layer active" style="background: linear-gradient(115deg, rgba(255, 50, 150, 0.45), rgba(50, 200, 255, 0.45), rgba(255, 230, 50, 0.45), rgba(50, 255, 150, 0.45), rgba(255, 50, 150, 0.45)); background-size: 300% 100%; animation: oscillateSheen 6s ease-in-out infinite alternate; mix-blend-mode: overlay;"></div>
+          `;
+        }
+
         cardEl.innerHTML = `
           <div class="card-3d-wrapper">
             <div class="face face-front">
               <img class="card-img" src="${card.ArtworkURL}" alt="${card.Card_Name}">
-              <div class="finish-layer" style="${getFinishConfig(variant, card, 50, 50)}"></div>
+              ${finishHTML}
             </div>
             <div class="face face-back">
               <img class="card-img" src="${card.CardBackURL}" alt="Back">
@@ -222,7 +258,7 @@
         `;
 
         const wrapper = cardEl.querySelector('.card-3d-wrapper');
-        const finishLayer = cardEl.querySelector('.finish-layer');
+        const sheen = cardEl.querySelector('.foil-sheen');
 
         cardEl.addEventListener('mousemove', (e) => {
           const rect = cardEl.getBoundingClientRect();
@@ -233,61 +269,23 @@
 
           wrapper.style.transform = `rotateX(${(-yc / rect.height) * 14}deg) rotateY(${(xc / rect.width) * 14}deg)`;
 
-          if (variant === 'Foil' && card.Foil_Matte) {
+          if (variant === 'Foil' && sheen) {
             const posX = (x / rect.width) * 100;
             const posY = (y / rect.height) * 100;
-            finishLayer.style.backgroundPosition = `${posX}% ${posY}%`;
+            sheen.style.transform = `translate(${(x - rect.width/2) * 0.2}px, ${(y - rect.height/2) * 0.2}px)`;
           }
         });
 
         cardEl.addEventListener('mouseleave', () => {
           wrapper.style.transform = `rotateX(0deg) rotateY(0deg)`;
-          if (variant === 'Foil' && card.Foil_Matte) {
-            finishLayer.style.backgroundPosition = `50% 50%`;
+          if (variant === 'Foil' && sheen) {
+            sheen.style.transform = `translate(0px, 0px)`;
           }
         });
 
         cardEl.addEventListener('click', () => openModal(card, isOwned, variant));
         grid.appendChild(cardEl);
       });
-    }
-
-    function getFinishConfig(variant, card, posX = 50, posY = 50) {
-      if (variant === 'Foil') {
-        if (!card.Foil_Matte) return 'display: none;';
-        // Subdued realistic metallic silver sheen masked strictly by Foil_Matte URL
-        return `
-          background: radial-gradient(circle at ${posX}% ${posY}%, 
-            rgba(215, 215, 215, 0.85) 0%, 
-            rgba(130, 130, 130, 0.5) 45%, 
-            rgba(55, 55, 55, 0.85) 85%
-          );
-          background-size: 200% 200%;
-          background-position: ${posX}% ${posY}%;
-          -webkit-mask-image: url('${card.Foil_Matte}');
-          mask-image: url('${card.Foil_Matte}');
-          -webkit-mask-size: cover;
-          mask-size: cover;
-          -webkit-mask-position: center;
-          mask-position: center;
-          mix-blend-mode: overlay;
-        `;
-      } else if (variant === 'Prismatic') {
-        // Locked-in approved Prismatic configuration
-        return `
-          background: linear-gradient(115deg, 
-            rgba(255, 50, 150, 0.45), 
-            rgba(50, 200, 255, 0.45), 
-            rgba(255, 230, 50, 0.45), 
-            rgba(50, 255, 150, 0.45), 
-            rgba(255, 50, 150, 0.45)
-          );
-          background-size: 300% 100%;
-          animation: oscillateSheen 6s ease-in-out infinite alternate;
-          mix-blend-mode: overlay;
-        `;
-      }
-      return 'display: none;';
     }
 
     const modalOverlay = document.getElementById('modalOverlay');
@@ -301,7 +299,21 @@
       document.getElementById('modalQuantity').innerText = isOwned ? '1x owned' : '0x owned';
       document.getElementById('modalFrontImg').src = card.ArtworkURL;
       document.getElementById('modalBackImg').src = card.CardBackURL;
-      document.getElementById('modalFinishLayer').style.cssText = getFinishConfig(variant, card, 50, 50);
+      
+      const finishLayer = document.getElementById('modalFinishLayer');
+      const maskImg = document.getElementById('modalMaskImg');
+      
+      if (variant === 'Foil' && card.Foil_Matte) {
+        finishLayer.className = 'finish-layer active';
+        maskImg.src = card.Foil_Matte;
+      } else if (variant === 'Prismatic') {
+        finishLayer.className = 'finish-layer active';
+        finishLayer.style.background = 'linear-gradient(115deg, rgba(255, 50, 150, 0.45), rgba(50, 200, 255, 0.45), rgba(255, 230, 50, 0.45), rgba(50, 255, 150, 0.45), rgba(255, 50, 150, 0.45))';
+        maskImg.src = '';
+      } else {
+        finishLayer.className = 'finish-layer';
+      }
+
       modalCard.style.transform = 'rotateX(0deg) rotateY(0deg)';
       modalOverlay.classList.add('active');
     }
@@ -321,18 +333,16 @@
 
       modalCard.style.transform = `rotateX(${(-yc / rect.height) * 14}deg) rotateY(${(isFlipped ? 180 : 0) + (xc / rect.width) * 14}deg)`;
       
-      const finishLayer = document.getElementById('modalFinishLayer');
-      if (finishLayer && document.getElementById('variantSelect').value === 'Foil') {
-        const posX = (x / rect.width) * 100;
-        const posY = (y / rect.height) * 100;
-        finishLayer.style.backgroundPosition = `${posX}% ${posY}%`;
+      const sheen = document.getElementById('modalFoilSheen');
+      if (sheen && document.getElementById('variantSelect').value === 'Foil') {
+        sheen.style.transform = `translate(${(x - rect.width/2) * 0.2}px, ${(y - rect.height/2) * 0.2}px)`;
       }
     });
 
     modalStage.addEventListener('mouseleave', () => {
       modalCard.style.transform = isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)';
-      const finishLayer = document.getElementById('modalFinishLayer');
-      if (finishLayer) finishLayer.style.backgroundPosition = `50% 50%`;
+      const sheen = document.getElementById('modalFoilSheen');
+      if (sheen) sheen.style.transform = `translate(0px, 0px)`;
     });
 
     // Admin Editor Code
