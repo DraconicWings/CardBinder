@@ -148,7 +148,7 @@
 
     .card-container:hover .finish-layer,
     .modal-card-stage:hover .finish-layer {
-      opacity: 0.85; /* Softened overall presence */
+      opacity: 0.9;
     }
 
     .card-container.unowned .face-front img {
@@ -222,7 +222,7 @@
   <main>
     <div id="debugBox"></div>
     <div class="card-grid" id="cardGrid">
-      <div class="loading-state">Connecting to Google Sheets via CORS Proxy...</div>
+      <div class="loading-state">Connecting to Google Sheets...</div>
     </div>
   </main>
 
@@ -254,7 +254,8 @@
 
   <script>
     const RAW_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSw7uMK-pIYU0n_l8ypDgW2GrgLgnQIO5_j6phxej4IetUEDbzizT-xr4X1nV2TPQEYF2fvT2JBdpjJ/pub?gid=0&single=true&output=csv';
-    const SHEET_CSV_URL = `https://api.allorigins.win/raw?url=${encodeURIComponent(RAW_CSV_URL)}`;
+    // Switched to corsproxy.io for high availability
+    const SHEET_CSV_URL = `https://corsproxy.io/?${encodeURIComponent(RAW_CSV_URL)}`;
     
     let cards = [];
     let isFlipped = false;
@@ -401,7 +402,7 @@
       if (variant === 'Rare') {
         return {
           layerStyle: `
-            background: linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(255,215,0,0.5) 50%, rgba(255,255,255,0.8) 100%);
+            background: linear-gradient(135deg, rgba(255,255,255,0.85) 0%, rgba(255,215,0,0.4) 50%, rgba(255,255,255,0.75) 100%);
             background-size: 200% 200%;
             mix-blend-mode: overlay;
             -webkit-mask-image: url('${maskUrl}');
@@ -417,7 +418,7 @@
       } else if (variant === 'Prismatic') {
         return {
           layerStyle: `
-            background: linear-gradient(120deg, rgba(255,0,128,0.5) 0%, rgba(0,255,255,0.5) 33%, rgba(255,255,0,0.5) 66%, rgba(255,0,255,0.5) 100%);
+            background: linear-gradient(120deg, rgba(255,0,128,0.45) 0%, rgba(0,255,255,0.45) 33%, rgba(255,255,0,0.45) 66%, rgba(255,0,255,0.45) 100%);
             background-size: 250% 250%;
             mix-blend-mode: overlay;
             -webkit-mask-image: url('${maskUrl}');
