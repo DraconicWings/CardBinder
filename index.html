@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Twitch 3D Card Binder - Fixed Luminance Mask</title>
+  <title>Card Binder - Enhanced Foil Shine</title>
   <style>
     :root {
       --bg-dark: #0e0e10;
@@ -256,11 +256,12 @@
         if (!card.Foil_Matte) return 'display: none;';
         return `
           background: radial-gradient(circle at ${posX}% ${posY}%, 
-            rgba(245, 245, 245, 0.95) 0%, 
-            rgba(140, 140, 140, 0.65) 45%, 
-            rgba(30, 30, 30, 0.95) 85%
+            rgba(255, 255, 255, 1) 0%, 
+            rgba(190, 190, 190, 0.85) 35%, 
+            rgba(90, 90, 90, 0.7) 65%, 
+            rgba(15, 15, 15, 0.95) 90%
           );
-          background-size: 200% 200%;
+          background-size: 220% 220%;
           background-position: ${posX}% ${posY}%;
           -webkit-mask-image: url('${card.Foil_Matte}');
           mask-image: url('${card.Foil_Matte}');
