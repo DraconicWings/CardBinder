@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Card Binder - Restored Masked Foil</title>
+  <title>Twitch 3D Card Binder - Fixed Luminance Mask</title>
   <style>
     :root {
       --bg-dark: #0e0e10;
@@ -47,7 +47,6 @@
     .face-back { z-index: 1; transform: rotateY(180deg); }
     .card-img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }
 
-    /* Prismatic oscillation animation */
     @keyframes oscillateSheen {
       0% { background-position: 0% 50%; }
       100% { background-position: 100% 50%; }
@@ -255,17 +254,18 @@
     function getFinishConfig(variant, card, posX = 50, posY = 50) {
       if (variant === 'Foil') {
         if (!card.Foil_Matte) return 'display: none;';
-        // Restored clean CSS mask configuration utilizing card.Foil_Matte directly
         return `
           background: radial-gradient(circle at ${posX}% ${posY}%, 
-            rgba(235, 235, 235, 0.9) 0%, 
-            rgba(130, 130, 130, 0.6) 45%, 
-            rgba(40, 40, 40, 0.9) 85%
+            rgba(245, 245, 245, 0.95) 0%, 
+            rgba(140, 140, 140, 0.65) 45%, 
+            rgba(30, 30, 30, 0.95) 85%
           );
           background-size: 200% 200%;
           background-position: ${posX}% ${posY}%;
           -webkit-mask-image: url('${card.Foil_Matte}');
           mask-image: url('${card.Foil_Matte}');
+          -webkit-mask-mode: luminance;
+          mask-mode: luminance;
           -webkit-mask-size: cover;
           mask-size: cover;
           -webkit-mask-position: center;
@@ -273,7 +273,6 @@
           mix-blend-mode: overlay;
         `;
       } else if (variant === 'Prismatic') {
-        // Locked-in approved Prismatic configuration
         return `
           background: linear-gradient(115deg, 
             rgba(255, 50, 150, 0.45), 
