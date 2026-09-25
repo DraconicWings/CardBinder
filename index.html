@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Twitch 3D Card Binder - Silver Foil (Intense)</title>
+  <title>Twitch 3D Card Binder - Silver Foil Edition</title>
   <style>
     :root {
       --bg-dark: #0e0e10;
@@ -135,7 +135,7 @@
       pointer-events: none;
     }
 
-    /* Slightly stronger Silver Foil finish layer */
+    /* Enhanced Silver Foil finish layer */
     .finish-layer {
       position: absolute;
       top: 0; left: 0; width: 100%; height: 100%;
@@ -257,9 +257,9 @@
     <div class="controls">
       <input type="text" id="userInput" class="input-field" placeholder="Twitch Username..." value="StreamerOne">
       <select id="variantSelect" class="select-field">
-        <option value="Normal">Normal Collection</option>
-        <option value="Rare">Rare (Intense Silver Foil)</option>
-        <option value="Prismatic">Prismatic (Matte-Masked Rainbow)</option>
+        <option value="Normal">Normal</option>
+        <option value="Foil">Foil</option>
+        <option value="Prismatic">Prismatic</option>
       </select>
     </div>
   </header>
@@ -424,12 +424,12 @@
     }
 
     function getFinishConfig(variant, maskUrl) {
-      if (variant === 'Rare') {
-        // ✨ Boosted Silver Foil: Sharper metallic contrast and brighter icy highlights
+      if (variant === 'Foil') {
+        // ✨ High-intensity silver foil configuration
         return {
           layerStyle: `
-            background: linear-gradient(135deg, rgba(180,190,205,0.5) 0%, rgba(255,255,255,1) 30%, rgba(100,110,125,0.65) 60%, rgba(255,255,255,0.95) 100%);
-            background-size: 200% 200%;
+            background: linear-gradient(135deg, rgba(160,175,195,0.65) 0%, rgba(255,255,255,1) 28%, rgba(70,80,95,0.8) 55%, rgba(255,255,255,1) 80%, rgba(200,210,225,0.7) 100%);
+            background-size: 180% 180%;
             mix-blend-mode: overlay;
             -webkit-mask-image: url('${maskUrl}');
             -webkit-mask-mode: luminance;
