@@ -135,26 +135,28 @@
       pointer-events: none;
     }
 
-    /* Finish / Shine layers */
+    /* Finish / Shine layers using CSS Variables for mouse tracking */
     .finish-layer {
       position: absolute;
       top: 0; left: 0; width: 100%; height: 100%;
       pointer-events: none;
       z-index: 3;
-      opacity: 0.25; /* Subtle texture when mouse is away */
+      --x: 50%;
+      --y: 50%;
+      opacity: 0.35; /* Softly visible when mouse is away */
       transition: opacity 0.3s ease;
     }
 
     .card-container:hover .finish-layer,
     .modal-card-stage:hover .finish-layer {
-      opacity: 0.75; /* Moderate intensity on hover */
+      opacity: 0.9; /* Vibrant spotlight intensity on hover */
     }
 
     /* Continuous Prismatic Sweep Animation */
     @keyframes prismaticShine {
-      0% { background-position: 0% 50%, 0% 0%, center; }
-      50% { background-position: 100% 50%, 0% 0%, center; }
-      100% { background-position: 0% 50%, 0% 0%, center; }
+      0% { background-position: 0% 0%, 0% 50%, center; }
+      50% { background-position: 0% 0%, 100% 50%, center; }
+      100% { background-position: 0% 0%, 0% 50%, center; }
     }
 
     .card-container.unowned .face-front img {
@@ -388,13 +390,13 @@
         const cardEl = document.createElement('div');
         cardEl.className = `card-container ${isOwned ? '' : 'unowned'}`;
 
-        const finishConfig = getFinishConfig(selectedVariant, card, 50, 50);
+        const finishConfig = getFinishConfig(selectedVariant, card);
 
         cardEl.innerHTML = `
           <div class="card-3d-wrapper">
             <div class="face face-front">
               <img class="card-img" src="${card.ArtworkURL}" alt="${card.Card_Name}">
-              <div class="finish-layer" style="${finishConfig.layerStyle}"></div>
+              <div class="finish-layer" style="${finishConfig}"></div>
             </div>
             <div class="face face-back">
               <img class="card-img" src="${card.CardBackURL}" alt="Back">
@@ -419,16 +421,16 @@
           if (finishLayer && selectedVariant !== 'Normal') {
             const posX = (x / rect.width) * 100;
             const posY = (y / rect.height) * 100;
-            const dynamicConfig = getFinishConfig(selectedVariant, card, posX, posY);
-            finishLayer.style.cssText = dynamicConfig.layerStyle;
+            finishLayer.style.setProperty('--x', posX + '%');
+            finishLayer.style.setProperty('--y', posY + '%');
           }
         });
 
         cardEl.addEventListener('mouseleave', () => {
           wrapper.style.transform = `rotateX(0deg) rotateY(0deg)`;
-          if (finishLayer && selectedVariant !== 'Normal') {
-            const defaultConfig = getFinishConfig(selectedVariant, card, 50, 50);
-            finishLayer.style.cssText = defaultConfig.layerStyle;
+          if (finishLayer) {
+            finishLayer.style.setProperty('--x', '50%');
+            finishLayer.style.setProperty('--y', '50%');
           }
         });
 
@@ -437,44 +439,40 @@
       });
     }
 
-    function getFinishConfig(variant, card, posX = 50, posY = 50) {
+    function getFinishConfig(variant, card) {
       if (variant === 'Foil') {
         const maskUrl = card.Foil_Matte || card.ArtworkURL;
-        return {
-          layerStyle: `
-            background: 
-              radial-gradient(circle 120px at ${posX}% ${posY}%, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.1) 50%, transparent 100%),
-              linear-gradient(135deg, rgba(160,175,195,0.4) 0%, rgba(255,255,255,0.7) 28%, rgba(70,80,95,0.5) 55%, rgba(255,255,255,0.7) 80%, rgba(200,210,225,0.4) 100%);
-            background-size: 100% 100%, 180% 180%;
-            background-position: 0% 0%, ${posX}% ${posY}%;
-            mix-blend-mode: overlay;
-            -webkit-mask-image: url('${maskUrl}');
-            -webkit-mask-mode: luminance;
-            -webkit-mask-size: cover;
-            -webkit-mask-position: center;
-            mask-image: url('${maskUrl}');
-            mask-mode: luminance;
-            mask-size: cover;
-            mask-position: center;
-          `
-        };
+        return `
+          background: 
+            radial-gradient(circle 120px at var(--x) var(--y), rgba(255,255,255,0.7) 0%, rgba(255,255,255,0.05) 50%, transparent 100%),
+            linear-gradient(135deg, rgba(160,175,195,0.3) 0%, rgba(255,255,255,0.6) 28%, rgba(70,80,95,0.4) 55%, rgba(255,255,255,0.6) 80%, rgba(200,210,225,0.3) 100%);
+          background-size: 100% 100%, 180% 180%;
+          background-position: 0% 0%, 0% 0%;
+          mix-blend-mode: overlay;
+          -webkit-mask-image: url('${maskUrl}');
+          -webkit-mask-mode: luminance;
+          -webkit-mask-size: cover;
+          -webkit-mask-position: center;
+          mask-image: url('${maskUrl}');
+          mask-mode: luminance;
+          mask-size: cover;
+          mask-position: center;
+        `;
       } else if (variant === 'Prismatic') {
         const textureUrl = card.Prismatic_Texture || "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=500";
-        return {
-          layerStyle: `
-            background: 
-              radial-gradient(circle 130px at ${posX}% ${posY}%, rgba(255,255,255,0.65) 0%, rgba(255,255,255,0.15) 50%, transparent 100%),
-              linear-gradient(120deg, rgba(255,0,150,0.2), rgba(0,255,255,0.2), rgba(255,255,0,0.2), rgba(0,255,128,0.2)),
-              url('${textureUrl}');
-            background-size: 100% 100%, 300% 300%, cover;
-            background-position: 0% 0%, ${posX}% ${posY}%, center;
-            background-blend-mode: overlay, normal, luminosity;
-            animation: prismaticShine 6s linear infinite;
-            mix-blend-mode: color-dodge;
-          `
-        };
+        return `
+          background: 
+            radial-gradient(circle 130px at var(--x) var(--y), rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.1) 50%, transparent 100%),
+            linear-gradient(120deg, rgba(255,0,150,0.15), rgba(0,255,255,0.15), rgba(255,255,0,0.15), rgba(0,255,128,0.15)),
+            url('${textureUrl}');
+          background-size: 100% 100%, 300% 300%, cover;
+          background-position: 0% 0%, 0% 50%, center;
+          background-blend-mode: overlay, normal, luminosity;
+          animation: prismaticShine 6s linear infinite;
+          mix-blend-mode: color-dodge;
+        `;
       }
-      return { layerStyle: 'display: none;' };
+      return 'display: none;';
     }
 
     // Modal Mechanics
@@ -491,8 +489,8 @@
       document.getElementById('modalFrontImg').src = card.ArtworkURL;
       document.getElementById('modalBackImg').src = card.CardBackURL;
 
-      const finishConfig = getFinishConfig(variant, card, 50, 50);
-      document.getElementById('modalFinishLayer').style.cssText = finishConfig.layerStyle;
+      const finishConfig = getFinishConfig(variant, card);
+      document.getElementById('modalFinishLayer').style.cssText = finishConfig;
 
       modalCard.style.transform = 'rotateX(0deg) rotateY(0deg)';
       modalOverlay.classList.add('active');
@@ -520,30 +518,23 @@
       const baseAngle = isFlipped ? 180 : 0;
       modalCard.style.transform = `rotateX(${rx}deg) rotateY(${baseAngle + ry}deg)`;
 
-      const currentVariant = document.getElementById('variantSelect').value;
       const modalFinish = document.getElementById('modalFinishLayer');
-      if (modalFinish && currentVariant !== 'Normal') {
+      if (modalFinish) {
         const posX = (x / rect.width) * 100;
         const posY = (y / rect.height) * 100;
-        const dynamicConfig = getFinishConfig(currentVariant, getCurrentModalCard(), posX, posY);
-        modalFinish.style.cssText = dynamicConfig.layerStyle;
+        modalFinish.style.setProperty('--x', posX + '%');
+        modalFinish.style.setProperty('--y', posY + '%');
       }
     });
 
     modalStage.addEventListener('mouseleave', () => {
       modalCard.style.transform = isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)';
-      const currentVariant = document.getElementById('variantSelect').value;
       const modalFinish = document.getElementById('modalFinishLayer');
-      if (modalFinish && currentVariant !== 'Normal') {
-        const defaultConfig = getFinishConfig(currentVariant, getCurrentModalCard(), 50, 50);
-        modalFinish.style.cssText = defaultConfig.layerStyle;
+      if (modalFinish) {
+        modalFinish.style.setProperty('--x', '50%');
+        modalFinish.style.setProperty('--y', '50%');
       }
     });
-
-    function getCurrentModalCard() {
-      const title = document.getElementById('modalTitle').innerText;
-      return masterCards.find(c => c.Card_Name === title) || masterCards[0];
-    }
 
     // ==========================================
     // 🕵️‍♂️ SECRET CHEAT-CODE TRIGGER & SPREADSHEET EDITOR
