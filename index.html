@@ -1,7 +1,9 @@
+<!DOCTYPE html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Card Binder PRISMATICUPDATE</title>
+  <title>Twitch 3D Card Binder - Prismatic Edition</title>
   <style>
     :root {
       --bg-dark: #0e0e10;
@@ -309,7 +311,7 @@
         <button class="btn" id="closeAdminBtn">&times; Close</button>
       </div>
       <div class="admin-body">
-        <p style="color: var(--text-muted); font-size: 0.85rem;">Configure card details, foil matte masks, and the new Prismatic texture overlay URLs below.</p>
+        <p style="color: var(--text-muted); font-size: 0.85rem;">Configure card details, foil matte masks, and Prismatic texture overlay URLs below.</p>
         <table class="sheet-table" id="sheetTable">
           <thead>
             <tr>
@@ -386,7 +388,7 @@
         const cardEl = document.createElement('div');
         cardEl.className = `card-container ${isOwned ? '' : 'unowned'}`;
 
-        const finishConfig = getFinishConfig(selectedVariant, card);
+        const finishConfig = getFinishConfig(selectedVariant, card, 50, 50);
 
         cardEl.innerHTML = `
           <div class="card-3d-wrapper">
@@ -414,16 +416,20 @@
           const ry = (xc / rect.width) * 18;
           wrapper.style.transform = `rotateX(${rx}deg) rotateY(${ry}deg)`;
 
-          if (finishLayer && selectedVariant === 'Foil') {
+          if (finishLayer && selectedVariant !== 'Normal') {
             const posX = (x / rect.width) * 100;
             const posY = (y / rect.height) * 100;
-            finishLayer.style.backgroundPosition = `${posX}% ${posY}%`;
+            const dynamicConfig = getFinishConfig(selectedVariant, card, posX, posY);
+            finishLayer.style.cssText = dynamicConfig.layerStyle;
           }
         });
 
         cardEl.addEventListener('mouseleave', () => {
           wrapper.style.transform = `rotateX(0deg) rotateY(0deg)`;
-          if (finishLayer && selectedVariant === 'Foil') finishLayer.style.backgroundPosition = `50% 50%`;
+          if (finishLayer && selectedVariant !== 'Normal') {
+            const defaultConfig = getFinishConfig(selectedVariant, card, 50, 50);
+            finishLayer.style.cssText = defaultConfig.layerStyle;
+          }
         });
 
         cardEl.addEventListener('click', () => openModal(card, isOwned, selectedVariant));
@@ -431,13 +437,16 @@
       });
     }
 
-    function getFinishConfig(variant, card) {
+    function getFinishConfig(variant, card, posX = 50, posY = 50) {
       if (variant === 'Foil') {
         const maskUrl = card.Foil_Matte || card.ArtworkURL;
         return {
           layerStyle: `
-            background: linear-gradient(135deg, rgba(160,175,195,0.65) 0%, rgba(255,255,255,1) 28%, rgba(70,80,95,0.8) 55%, rgba(255,255,255,1) 80%, rgba(200,210,225,0.7) 100%);
-            background-size: 180% 180%;
+            background: 
+              radial-gradient(circle at ${posX}% ${posY}%, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.2) 40%, transparent 70%),
+              linear-gradient(135deg, rgba(160,175,195,0.65) 0%, rgba(255,255,255,1) 28%, rgba(70,80,95,0.8) 55%, rgba(255,255,255,1) 80%, rgba(200,210,225,0.7) 100%);
+            background-size: 100% 100%, 180% 180%;
+            background-position: 0% 0%, ${posX}% ${posY}%;
             mix-blend-mode: overlay;
             -webkit-mask-image: url('${maskUrl}');
             -webkit-mask-mode: luminance;
@@ -453,11 +462,14 @@
         const textureUrl = card.Prismatic_Texture || card.ArtworkURL;
         return {
           layerStyle: `
-            background: linear-gradient(120deg, rgba(255,0,128,0.5) 0%, rgba(0,255,255,0.5) 25%, rgba(255,255,0,0.5) 50%, rgba(0,255,128,0.5) 75%, rgba(255,0,255,0.5) 100%);
-            background-size: 300% 300%;
+            background: 
+              radial-gradient(circle at ${posX}% ${posY}%, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.3) 35%, transparent 65%),
+              linear-gradient(120deg, rgba(255,0,128,0.75) 0%, rgba(0,255,255,0.75) 25%, rgba(255,255,0,0.75) 50%, rgba(0,255,128,0.75) 75%, rgba(255,0,255,0.75) 100%);
+            background-size: 100% 100%, 300% 300%;
+            background-position: 0% 0%;
             animation: prismaticShine 5s linear infinite;
             mix-blend-mode: overlay;
-            opacity: 0.75;
+            opacity: 0.95;
             -webkit-mask-image: url('${textureUrl}');
             -webkit-mask-mode: luminance;
             -webkit-mask-size: cover;
@@ -486,7 +498,7 @@
       document.getElementById('modalFrontImg').src = card.ArtworkURL;
       document.getElementById('modalBackImg').src = card.CardBackURL;
 
-      const finishConfig = getFinishConfig(variant, card);
+      const finishConfig = getFinishConfig(variant, card, 50, 50);
       document.getElementById('modalFinishLayer').style.cssText = finishConfig.layerStyle;
 
       modalCard.style.transform = 'rotateX(0deg) rotateY(0deg)';
@@ -517,16 +529,22 @@
 
       const currentVariant = document.getElementById('variantSelect').value;
       const modalFinish = document.getElementById('modalFinishLayer');
-      if (modalFinish && currentVariant === 'Foil') {
+      if (modalFinish && currentVariant !== 'Normal') {
         const posX = (x / rect.width) * 100;
         const posY = (y / rect.height) * 100;
-        modalFinish.style.backgroundPosition = `${posX}% ${posY}%`;
+        const dynamicConfig = getFinishConfig(currentVariant, getCurrentModalCard(), posX, posY);
+        modalFinish.style.cssText = dynamicConfig.layerStyle;
       }
     });
 
     modalStage.addEventListener('mouseleave', () => {
       modalCard.style.transform = isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)';
     });
+
+    function getCurrentModalCard() {
+      const title = document.getElementById('modalTitle').innerText;
+      return masterCards.find(c => c.Card_Name === title) || masterCards[0];
+    }
 
     // ==========================================
     // 🕵️‍♂️ SECRET CHEAT-CODE TRIGGER & SPREADSHEET EDITOR
