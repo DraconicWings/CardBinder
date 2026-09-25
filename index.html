@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Card Binder - Enhanced Foil Shine</title>
+  <title>Twitch 3D Card Binder - Ultra High-Contrast Foil</title>
   <style>
     :root {
       --bg-dark: #0e0e10;
@@ -257,11 +257,11 @@
         return `
           background: radial-gradient(circle at ${posX}% ${posY}%, 
             rgba(255, 255, 255, 1) 0%, 
-            rgba(190, 190, 190, 0.85) 35%, 
-            rgba(90, 90, 90, 0.7) 65%, 
-            rgba(15, 15, 15, 0.95) 90%
+            rgba(240, 240, 240, 0.95) 20%, 
+            rgba(120, 120, 120, 0.8) 45%, 
+            rgba(10, 10, 10, 0.98) 75%
           );
-          background-size: 220% 220%;
+          background-size: 180% 180%;
           background-position: ${posX}% ${posY}%;
           -webkit-mask-image: url('${card.Foil_Matte}');
           mask-image: url('${card.Foil_Matte}');
@@ -271,7 +271,7 @@
           mask-size: cover;
           -webkit-mask-position: center;
           mask-position: center;
-          mix-blend-mode: overlay;
+          mix-blend-mode: color-dodge;
         `;
       } else if (variant === 'Prismatic') {
         return `
