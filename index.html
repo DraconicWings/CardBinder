@@ -90,7 +90,9 @@
       mix-blend-mode: overlay;
     }
 
-    .card-container.unowned .face-front img { filter: grayscale(100%) brightness(0.45); }
+    /* Grayscale applied to unowned cards in grid and modal */
+    .card-container.unowned .face-front img,
+    .modal-card-stage.unowned .face-front img { filter: grayscale(100%) brightness(0.45); }
 
     .modal-overlay {
       position: fixed; top: 0; left: 0; right: 0; bottom: 0;
@@ -338,7 +340,6 @@
       }
 
       masterCards.forEach((card) => {
-        // Defaults to 0 (unowned/greyscale) unless explicitly found in user inventory
         const quantity = userInventory[card.Card_ID] || 0;
         const isOwned = quantity > 0;
         
@@ -389,7 +390,7 @@
           }
         });
 
-        cardEl.addEventListener('click', () => openModal(card, quantity, variant));
+        cardEl.addEventListener('click', () => openModal(card, quantity, variant, isOwned));
         grid.appendChild(cardEl);
       });
     }
@@ -422,7 +423,7 @@
     const modalCard = document.getElementById('modalCard');
     const modalStage = document.getElementById('modalStage');
 
-    function openModal(card, quantity, variant) {
+    function openModal(card, quantity, variant, isOwned) {
       isFlipped = false;
       document.getElementById('modalTitle').innerText = card.Card_Name;
       document.getElementById('modalVariant').innerText = variant;
@@ -430,6 +431,14 @@
       document.getElementById('modalFrontImg').src = card.ArtworkURL;
       document.getElementById('modalBackImg').src = card.CardBackURL;
       document.getElementById('modalFinishLayer').style.cssText = getFinishConfig(variant, card, 50, 50);
+      
+      // Toggle unowned class on the modal stage so zoom view matches card state
+      if (isOwned) {
+        modalStage.classList.remove('unowned');
+      } else {
+        modalStage.classList.add('unowned');
+      }
+
       modalCard.style.transform = 'rotateX(0deg) rotateY(0deg)';
       modalOverlay.classList.add('active');
     }
