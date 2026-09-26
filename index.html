@@ -175,7 +175,7 @@
         <h2 id="modalTitle">Card Title</h2>
         <div>Variant: <strong id="modalVariant">Normal</strong></div>
         <button class="btn-flip" id="modalFlipBtn">🔄 Flip Card</button>
-        <div style="background: #26262c; padding: 12px; border-radius: 8px; text-align: center;" id="modalQuantity">1x owned</div>
+        <div style="background: #26262c; padding: 12px; border-radius: 8px; text-align: center;" id="modalQuantity">0x owned</div>
       </div>
     </div>
   </div>
@@ -210,7 +210,7 @@
 
   <script>
     const SUPABASE_URL = 'https://nxlyzlfjvnoyvjysamkx.supabase.co';
-    const SUPABASE_KEY = 'sb_publishable_xaJYz0J2ofBLzGIJM4W5ww_wCiFfb2S';
+    const SUPABASE_KEY = 'YOUR_ACTUAL_ANON_KEY_HERE'; // Replace with your real Supabase key
     
     let supabaseClient = null;
     try {
@@ -275,6 +275,8 @@
             options: { redirectTo: window.location.origin }
           });
         });
+        userInventory = {};
+        render();
       }
     }
 
@@ -317,7 +319,7 @@
         const { data, error } = await supabaseClient.from('user_inventory').select('*').eq('user_id', userId);
         if (!error && data) {
           userInventory = {};
-          data.forEach(item => { userInventory[item.card_id] = item.quantity || 1; });
+          data.forEach(item => { userInventory[item.card_id] = item.quantity || 0; });
           render();
         }
       } catch (err) {
@@ -336,7 +338,8 @@
       }
 
       masterCards.forEach((card) => {
-        const quantity = currentUser ? (userInventory[card.Card_ID] || 0) : 1;
+        // Defaults to 0 (unowned/greyscale) unless explicitly found in user inventory
+        const quantity = userInventory[card.Card_ID] || 0;
         const isOwned = quantity > 0;
         
         const cardEl = document.createElement('div');
