@@ -57,10 +57,10 @@
       100% { background-position: 100% 50%; }
     }
 
-    /* Slowed down, natural interval diagonal shine */
+    /* Slightly faster interval diagonal shine (8s instead of 12s) */
     @keyframes diagonalShine {
       0% { transform: translate(-120%, -120%) rotate(35deg); }
-      35% { transform: translate(120%, 120%) rotate(35deg); }
+      40% { transform: translate(120%, 120%) rotate(35deg); }
       100% { transform: translate(120%, 120%) rotate(35deg); }
     }
 
@@ -82,8 +82,8 @@
         transparent 60%
       );
       pointer-events: none;
-      /* Slower interval: 12 seconds total loop with smooth pause */
-      animation: diagonalShine 12s cubic-bezier(0.25, 1, 0.5, 1) infinite;
+      /* Adjusted to 8 seconds for a slightly quicker repeat interval */
+      animation: diagonalShine 8s cubic-bezier(0.25, 1, 0.5, 1) infinite;
       mix-blend-mode: overlay;
     }
 
@@ -152,7 +152,7 @@
       </select>
     </div>
     
-    <div></div> <!-- Spacer for flex alignment balance -->
+    <div></div>
   </header>
 
   <main>
@@ -295,7 +295,6 @@
     function getFinishConfig(variant, card, posX = 50, posY = 50) {
       if (variant === 'Foil') {
         if (!card.Foil_Matte) return 'display: none;';
-        // --- LOCKED FOIL CONFIG (DO NOT TOUCH) ---
         return `
           background: radial-gradient(circle at ${posX}% ${posY}%, 
             rgba(255, 255, 255, 0.95) 0%, 
