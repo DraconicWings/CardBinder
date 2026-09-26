@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Card Binder - Prismatic Speed Test</title>
+  <title>Card Binder</title>
   <style>
     :root {
       --bg-dark: #0e0e10;
@@ -57,11 +57,11 @@
       100% { background-position: 100% 50%; }
     }
 
-    /* 5 second loop interval with a slightly extended glide duration */
+    /* Slower sweep duration (8s) with 5s repeat interval pacing */
     @keyframes diagonalShine {
-      0% { transform: translate(-130%, -130%) rotate(35deg); }
-      50% { transform: translate(130%, 130%) rotate(35deg); }
-      100% { transform: translate(130%, 130%) rotate(35deg); }
+      0% { transform: translate(-150%, -150%) rotate(35deg); }
+      60% { transform: translate(150%, 150%) rotate(35deg); }
+      100% { transform: translate(150%, 150%) rotate(35deg); }
     }
 
     .finish-layer {
@@ -75,15 +75,15 @@
       top: -50%; left: -50%; width: 200%; height: 200%;
       background: linear-gradient(
         135deg,
-        transparent 40%,
-        rgba(255, 255, 255, 0.25) 47%,
-        rgba(255, 220, 255, 0.35) 50%,
-        rgba(150, 240, 255, 0.25) 53%,
-        transparent 60%
+        transparent 35%,
+        rgba(255, 255, 255, 0.22) 46%,
+        rgba(255, 220, 255, 0.32) 50%,
+        rgba(150, 240, 255, 0.22) 54%,
+        transparent 65%
       );
       pointer-events: none;
-      /* 5 seconds interval loop */
-      animation: diagonalShine 5s cubic-bezier(0.25, 1, 0.5, 1) infinite;
+      /* Slowed down transition glide duration to 8s */
+      animation: diagonalShine 8s linear infinite;
       mix-blend-mode: overlay;
     }
 
