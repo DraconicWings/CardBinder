@@ -57,11 +57,11 @@
       100% { background-position: 100% 50%; }
     }
 
-    /* Slightly faster interval diagonal shine (8s instead of 12s) */
+    /* 5 second loop interval with a slightly extended glide duration */
     @keyframes diagonalShine {
-      0% { transform: translate(-120%, -120%) rotate(35deg); }
-      40% { transform: translate(120%, 120%) rotate(35deg); }
-      100% { transform: translate(120%, 120%) rotate(35deg); }
+      0% { transform: translate(-130%, -130%) rotate(35deg); }
+      50% { transform: translate(130%, 130%) rotate(35deg); }
+      100% { transform: translate(130%, 130%) rotate(35deg); }
     }
 
     .finish-layer {
@@ -82,8 +82,8 @@
         transparent 60%
       );
       pointer-events: none;
-      /* Adjusted to 8 seconds for a slightly quicker repeat interval */
-      animation: diagonalShine 8s cubic-bezier(0.25, 1, 0.5, 1) infinite;
+      /* 5 seconds interval loop */
+      animation: diagonalShine 5s cubic-bezier(0.25, 1, 0.5, 1) infinite;
       mix-blend-mode: overlay;
     }
 
