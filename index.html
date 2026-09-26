@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Card Binder</title>
+  <!-- Supabase JS Client SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root {
       --bg-dark: #0e0e10;
@@ -31,7 +33,13 @@
       display: flex; align-items: center; gap: 16px;
     }
     .input-group { display: flex; align-items: center; gap: 8px; font-size: 0.9rem; color: var(--text-muted); font-weight: 600; }
-    .input-field, .select-field { background: #0e0e10; border: 1px solid #3a3a44; color: var(--text); padding: 8px 12px; border-radius: 6px; outline: none; }
+    .select-field { background: #0e0e10; border: 1px solid #3a3a44; color: var(--text); padding: 8px 12px; border-radius: 6px; outline: none; }
+
+    /* Auth User Section */
+    .auth-section { display: flex; align-items: center; gap: 12px; }
+    .user-pill { display: flex; align-items: center; gap: 8px; background: #2d2d35; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; }
+    .btn-twitch { background: var(--accent); color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+    .btn-twitch:hover { background: var(--accent-hover); }
 
     main { flex: 1; padding: 32px 24px; max-width: 1400px; margin: 0 auto; width: 100%; }
     .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--card-w), 1fr)); gap: 28px; justify-items: center; }
@@ -57,7 +65,6 @@
       100% { background-position: 100% 50%; }
     }
 
-    /* Slower sweep duration (8s) with 5s repeat interval pacing */
     @keyframes diagonalShine {
       0% { transform: translate(-150%, -150%) rotate(35deg); }
       60% { transform: translate(150%, 150%) rotate(35deg); }
@@ -82,7 +89,6 @@
         transparent 65%
       );
       pointer-events: none;
-      /* Slowed down transition glide duration to 8s */
       animation: diagonalShine 8s linear infinite;
       mix-blend-mode: overlay;
     }
@@ -141,10 +147,6 @@
     </div>
 
     <div class="controls-center">
-      <div class="input-group">
-        <span>Username:</span>
-        <input type="text" id="userInput" class="input-field" placeholder="Twitch Username..." value="StreamerOne">
-      </div>
       <select id="variantSelect" class="select-field">
         <option value="Normal">Normal</option>
         <option value="Foil">Foil</option>
@@ -152,12 +154,14 @@
       </select>
     </div>
     
-    <div></div>
+    <div class="auth-section" id="authSection">
+      <button class="btn-twitch" id="loginBtn">Log in with Twitch</button>
+    </div>
   </header>
 
   <main>
     <div class="card-grid" id="cardGrid">
-      <div class="loading-state">Loading Master Binder...</div>
+      <div class="loading-state">Loading Master Binder from Supabase...</div>
     </div>
   </main>
 
@@ -189,7 +193,7 @@
   <div class="admin-modal" id="adminModal">
     <div class="admin-box">
       <div class="admin-header">
-        <h3>📊 Master Spreadsheet Editor</h3>
+        <h3>📊 Master Spreadsheet Editor (Supabase Sync)</h3>
         <button class="btn" id="closeAdminBtn">&times; Close</button>
       </div>
       <div class="admin-body">
@@ -204,7 +208,7 @@
         <button class="btn" id="addRowBtn" style="margin-top: 8px;">+ Add Row</button>
       </div>
       <div class="admin-footer">
-        <button class="btn btn-danger" id="resetDefaultBtn">Reset Defaults</button>
+        <button class="btn btn-danger" id="resetDefaultBtn">Reload from DB</button>
         <div style="display: flex; gap: 10px;">
           <button class="btn" id="cancelAdminBtn">Cancel</button>
           <button class="btn btn-primary" id="saveAdminBtn">Save Changes</button>
@@ -214,32 +218,117 @@
   </div>
 
   <script>
-    let masterCards = [
-      {
-        Card_ID: "CARD-001",
-        Card_Name: "Teatime with Stitchy",
-        ArtworkURL: "https://i.imgur.com/rarZMX.png",
-        CardBackURL: "https://i.imgur.com/GaFZUI.png",
-        Foil_Matte: "https://i.imgur.com/9AywIF.png",
-        Prismatic_Texture: ""
-      }
-    ];
+    // --- Supabase Initialization ---
+    const SUPABASE_URL = 'https://nxlyzlfjvnoyvjysamkx.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_xaJYz0J2ofBLZGIJM4W5ww_wCiff...'; // Replace with your actual publishable key copied earlier
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+    let masterCards = [];
+    let userInventory = {};
+    let currentUser = null;
     let isFlipped = false;
 
-    function initBinder() {
-      const saved = localStorage.getItem('twitch_binder_master_db');
-      if (saved) { try { masterCards = JSON.parse(saved); } catch(e) {} }
+    // --- Authentication Flow ---
+    async function initAuth() {
+      const { data: { session } } = await supabase.auth.getSession();
+      updateAuthUI(session?.user || null);
+
+      supabase.auth.onAuthStateChange((event, session) => {
+        updateAuthUI(session?.user || null);
+      });
+
+      document.getElementById('loginBtn').addEventListener('click', async () => {
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider: 'twitch',
+          options: { redirectTo: window.location.origin }
+        });
+        if (error) console.error('Twitch Login Error:', error.message);
+      });
+    }
+
+    function updateAuthUI(user) {
+      currentUser = user;
+      const authSection = document.getElementById('authSection');
+      if (user) {
+        const username = user.user_metadata?.preferred_username || user.user_metadata?.full_name || 'Streamer';
+        const avatar = user.user_metadata?.avatar_url;
+        authSection.innerHTML = `
+          <div class="user-pill">
+            ${avatar ? `<img src="${avatar}" style="width:22px; height:22px; border-radius:50%; object-fit:cover;" />` : ''}
+            <span>${username}</span>
+          </div>
+          <button class="btn" id="logoutBtn" style="padding: 6px 12px; font-size: 0.8rem;">Log Out</button>
+        `;
+        document.getElementById('logoutBtn').addEventListener('click', async () => {
+          await supabase.auth.signOut();
+          window.location.reload();
+        });
+        fetchUserInventory(user.id);
+      } else {
+        authSection.innerHTML = `<button class="btn-twitch" id="loginBtn">Log in with Twitch</button>`;
+        document.getElementById('loginBtn').addEventListener('click', async () => {
+          await supabase.auth.signInWithOAuth({
+            provider: 'twitch',
+            options: { redirectTo: window.location.origin }
+          });
+        });
+      }
+    }
+
+    // --- Data Fetching from Supabase ---
+    async function initBinder() {
+      await initAuth();
+      await fetchMasterCards();
+    }
+
+    async function fetchMasterCards() {
+      const { data, error } = await supabase.from('cards').select('*');
+      if (error) {
+        console.error('Error fetching cards:', error.message);
+        document.getElementById('cardGrid').innerHTML = `<div class="loading-state">Error loading binder catalog.</div>`;
+        return;
+      }
+      masterCards = (data || []).map(c => ({
+        Card_ID: c.card_id,
+        Card_Name: c.card_name,
+        ArtworkURL: c.artwork_url,
+        CardBackURL: c.card_back_url,
+        Foil_Matte: c.foil_matte_url,
+        Prismatic_Texture: c.prismatic_texture_url
+      }));
       render();
     }
 
+    async function fetchUserInventory(userId) {
+      const { data, error } = await supabase
+        .from('user_inventory')
+        .select('*')
+        .eq('user_id', userId);
+      
+      if (!error && data) {
+        userInventory = {};
+        data.forEach(item => {
+          userInventory[item.card_id] = item.quantity || 1;
+        });
+        render();
+      }
+    }
+
+    // --- Render Logic ---
     function render() {
       const grid = document.getElementById('cardGrid');
       const variant = document.getElementById('variantSelect').value;
       grid.innerHTML = '';
 
-      masterCards.forEach((card, index) => {
-        const isOwned = (index % 2 === 0);
+      if (masterCards.length === 0) {
+        grid.innerHTML = `<div class="loading-state">No cards found in catalog.</div>`;
+        return;
+      }
+
+      masterCards.forEach((card) => {
+        const quantity = currentUser ? (userInventory[card.Card_ID] || 0) : 1; // Default to owned if unauthenticated for testing
+        const isOwned = quantity > 0;
+        
         const cardEl = document.createElement('div');
         cardEl.className = `card-container ${isOwned ? '' : 'unowned'}`;
 
@@ -287,7 +376,7 @@
           }
         });
 
-        cardEl.addEventListener('click', () => openModal(card, isOwned, variant));
+        cardEl.addEventListener('click', () => openModal(card, quantity, variant));
         grid.appendChild(cardEl);
       });
     }
@@ -351,11 +440,11 @@
     const modalCard = document.getElementById('modalCard');
     const modalStage = document.getElementById('modalStage');
 
-    function openModal(card, isOwned, variant) {
+    function openModal(card, quantity, variant) {
       isFlipped = false;
       document.getElementById('modalTitle').innerText = card.Card_Name;
       document.getElementById('modalVariant').innerText = variant;
-      document.getElementById('modalQuantity').innerText = isOwned ? '1x owned' : '0x owned';
+      document.getElementById('modalQuantity').innerText = `${quantity}x owned`;
       document.getElementById('modalFrontImg').src = card.ArtworkURL;
       document.getElementById('modalBackImg').src = card.CardBackURL;
       document.getElementById('modalFinishLayer').style.cssText = getFinishConfig(variant, card, 50, 50);
@@ -380,7 +469,7 @@
       
       const finishLayer = document.getElementById('modalFinishLayer');
       const currentVariant = document.getElementById('variantSelect').value;
-      if (finishLayer) {
+      if (finishLayer && masterCards.length > 0) {
         if (currentVariant === 'Foil') {
           const posX = (x / rect.width) * 100;
           const posY = (y / rect.height) * 100;
@@ -396,14 +485,14 @@
     modalStage.addEventListener('mouseleave', () => {
       modalCard.style.transform = isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)';
       const finishLayer = document.getElementById('modalFinishLayer');
-      if (finishLayer) {
+      if (finishLayer && masterCards.length > 0) {
         const currentVariant = document.getElementById('variantSelect').value;
         if (currentVariant === 'Foil') finishLayer.style.backgroundPosition = `50% 50%`;
         if (currentVariant === 'Prismatic') finishLayer.style.cssText = getFinishConfig('Prismatic', masterCards[0], 50, 50);
       }
     });
 
-    // Admin Editor Code
+    // --- Admin Editor Code ---
     let typedBuffer = "";
     window.addEventListener('keydown', (e) => {
       if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) return;
@@ -433,21 +522,31 @@
     document.getElementById('addRowBtn').addEventListener('click', () => addRow());
     document.getElementById('closeAdminBtn').addEventListener('click', () => document.getElementById('adminModal').classList.remove('active'));
     document.getElementById('cancelAdminBtn').addEventListener('click', () => document.getElementById('adminModal').classList.remove('active'));
-    document.getElementById('saveAdminBtn').addEventListener('click', () => {
-      masterCards = Array.from(document.querySelectorAll('#sheetTableBody tr')).map(row => ({
-        Card_ID: row.querySelector('.e-id').value.trim(),
-        Card_Name: row.querySelector('.e-name').value.trim(),
-        ArtworkURL: row.querySelector('.e-art').value.trim(),
-        CardBackURL: row.querySelector('.e-back').value.trim(),
-        Foil_Matte: row.querySelector('.e-foil').value.trim(),
-        Prismatic_Texture: row.querySelector('.e-prism').value.trim()
+    
+    document.getElementById('saveAdminBtn').addEventListener('click', async () => {
+      const updatedCards = Array.from(document.querySelectorAll('#sheetTableBody tr')).map(row => ({
+        card_id: row.querySelector('.e-id').value.trim(),
+        card_name: row.querySelector('.e-name').value.trim(),
+        artwork_url: row.querySelector('.e-art').value.trim(),
+        card_back_url: row.querySelector('.e-back').value.trim(),
+        foil_matte_url: row.querySelector('.e-foil').value.trim(),
+        prismatic_texture_url: row.querySelector('.e-prism').value.trim()
       }));
-      localStorage.setItem('twitch_binder_master_db', JSON.stringify(masterCards));
-      document.getElementById('adminModal').classList.remove('active');
-      render();
+
+      // Upsert rows back into Supabase cards table
+      const { error } = await supabase.from('cards').upsert(updatedCards);
+      if (error) {
+        alert('Error saving to Supabase: ' + error.message);
+      } else {
+        alert('Successfully updated master catalog in Supabase!');
+        document.getElementById('adminModal').classList.remove('active');
+        fetchMasterCards();
+      }
     });
+
     document.getElementById('resetDefaultBtn').addEventListener('click', () => {
-      if (confirm("Reset?")) { localStorage.removeItem('twitch_binder_master_db'); location.reload(); }
+      fetchMasterCards();
+      document.getElementById('adminModal').classList.remove('active');
     });
 
     document.getElementById('variantSelect').addEventListener('change', render);
