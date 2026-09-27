@@ -90,7 +90,6 @@
       mix-blend-mode: overlay;
     }
 
-    /* Grayscale applied to unowned cards in grid and modal */
     .card-container.unowned .face-front img,
     .modal-card-stage.unowned .face-front img { filter: grayscale(100%) brightness(0.45); }
 
@@ -141,6 +140,12 @@
   <header>
     <div class="brand"><span>Card Binder</span></div>
     <div class="controls-center">
+      <!-- Set Selector Dropdown -->
+      <select id="setSelect" class="select-field">
+        <option value="">Loading Sets...</option>
+      </select>
+      
+      <!-- Variant Selector Dropdown -->
       <select id="variantSelect" class="select-field">
         <option value="Normal">Normal</option>
         <option value="Foil">Foil</option>
@@ -224,35 +229,42 @@
     let masterCards = [];
     let userInventory = {};
     let currentUser = null;
+    let currentUserId = null;
     let isFlipped = false;
+    let currentSetId = 'wings_and_friends';
 
     async function initAuth() {
       if (!supabaseClient) return;
       try {
         const { data: { session } } = await supabaseClient.auth.getSession();
-        updateAuthUI(session?.user || null);
+        if (session?.user) {
+          currentUser = session.user;
+          // Extract twitch_id from user metadata or fallback to user id mapping
+          currentUserId = session.user.user_metadata?.provider_id || session.user.id;
+          updateAuthUI(session.user);
+          await fetchUserInventory(currentUserId);
+        } else {
+          updateAuthUI(null);
+        }
 
-        supabaseClient.auth.onAuthStateChange((event, session) => {
-          updateAuthUI(session?.user || null);
+        supabaseClient.auth.onAuthStateChange(async (event, session) => {
+          if (session?.user) {
+            currentUser = session.user;
+            currentUserId = session.user.user_metadata?.provider_id || session.user.id;
+            updateAuthUI(session.user);
+            await fetchUserInventory(currentUserId);
+          } else {
+            currentUser = null;
+            currentUserId = null;
+            updateAuthUI(null);
+          }
         });
       } catch (err) {
         console.warn("Auth initialization warning:", err);
       }
-
-      const loginBtn = document.getElementById('loginBtn');
-      if (loginBtn) {
-        loginBtn.addEventListener('click', async () => {
-          const { error } = await supabaseClient.auth.signInWithOAuth({
-            provider: 'twitch',
-            options: { redirectTo: window.location.origin }
-          });
-          if (error) console.error('Twitch Login Error:', error.message);
-        });
-      }
     }
 
     function updateAuthUI(user) {
-      currentUser = user;
       const authSection = document.getElementById('authSection');
       if (user) {
         const username = user.user_metadata?.preferred_username || user.user_metadata?.full_name || 'Streamer';
@@ -268,7 +280,6 @@
           await supabaseClient.auth.signOut();
           window.location.reload();
         });
-        fetchUserInventory(user.id);
       } else {
         authSection.innerHTML = `<button class="btn-twitch" id="loginBtn">Log in with Twitch</button>`;
         document.getElementById('loginBtn').addEventListener('click', async () => {
@@ -284,17 +295,60 @@
 
     async function initBinder() {
       await initAuth();
-      await fetchMasterCards();
+      await fetchCardSets();
     }
 
-    async function fetchMasterCards() {
+    async function fetchCardSets() {
+      if (!supabaseClient) return;
+      try {
+        const { data, error } = await supabaseClient.from('card_sets').select('*').order('release_date', { ascending: true });
+        if (error) throw error;
+
+        const setSelect = document.getElementById('setSelect');
+        setSelect.innerHTML = '';
+
+        if (data && data.length > 0) {
+          data.forEach(set => {
+            const opt = document.createElement('option');
+            opt.value = set.set_id;
+            opt.textContent = set.set_name;
+            setSelect.appendChild(opt);
+          });
+          currentSetId = data[0].set_id;
+          setSelect.value = currentSetId;
+        } else {
+          const opt = document.createElement('option');
+          opt.value = 'wings_and_friends';
+          opt.textContent = 'Wings & Friends';
+          setSelect.appendChild(opt);
+          currentSetId = 'wings_and_friends';
+        }
+
+        setSelect.addEventListener('change', (e) => {
+          currentSetId = e.target.value;
+          fetchMasterCards(currentSetId);
+        });
+
+        await fetchMasterCards(currentSetId);
+      } catch (err) {
+        console.error('Error fetching card sets:', err);
+        // Fallback load default set
+        await fetchMasterCards('wings_and_friends');
+      }
+    }
+
+    async function fetchMasterCards(setId) {
       if (!supabaseClient) {
         document.getElementById('cardGrid').innerHTML = `<div class="loading-state">Supabase client failed to load. Check your configuration keys.</div>`;
         return;
       }
 
       try {
-        const { data, error } = await supabaseClient.from('cards').select('*');
+        const { data, error } = await supabaseClient
+          .from('cards')
+          .select('*')
+          .eq('set_id', setId);
+
         if (error) throw error;
 
         masterCards = (data || []).map(c => ({
@@ -303,7 +357,8 @@
           ArtworkURL: c.artwork_url,
           CardBackURL: c.card_back_url,
           Foil_Matte: c.foil_matte_url,
-          Prismatic_Texture: c.prismatic_texture_url
+          Prismatic_Texture: c.prismatic_texture_url,
+          Set_ID: c.set_id
         }));
         render();
       } catch (err) {
@@ -316,12 +371,21 @@
       }
     }
 
-    async function fetchUserInventory(userId) {
+    async function fetchUserInventory(twitchId) {
+      if (!twitchId) return;
       try {
-        const { data, error } = await supabaseClient.from('user_inventory').select('*').eq('user_id', userId);
+        // Queries inventory matching the user's twitch_id from your schema
+        const { data, error } = await supabaseClient
+          .from('user_inventory')
+          .select('*')
+          .eq('twitch_id', twitchId);
+
         if (!error && data) {
           userInventory = {};
-          data.forEach(item => { userInventory[item.card_id] = item.quantity || 0; });
+          data.forEach(item => {
+            // Key by card_id or variant if tracking specific variants
+            userInventory[item.card_id] = item.quantity || 0;
+          });
           render();
         }
       } catch (err) {
@@ -335,7 +399,7 @@
       grid.innerHTML = '';
 
       if (masterCards.length === 0) {
-        grid.innerHTML = `<div class="loading-state">No cards found in catalog. Type <b>matrix</b> to open the admin panel and add cards.</div>`;
+        grid.innerHTML = `<div class="loading-state">No cards found in this set catalog. Type <b>matrix</b> to open the admin panel and add cards.</div>`;
         return;
       }
 
@@ -432,7 +496,6 @@
       document.getElementById('modalBackImg').src = card.CardBackURL;
       document.getElementById('modalFinishLayer').style.cssText = getFinishConfig(variant, card, 50, 50);
       
-      // Toggle unowned class on the modal stage so zoom view matches card state
       if (isOwned) {
         modalStage.classList.remove('unowned');
       } else {
@@ -500,7 +563,8 @@
         artwork_url: row.querySelector('.e-art').value.trim(),
         card_back_url: row.querySelector('.e-back').value.trim(),
         foil_matte_url: row.querySelector('.e-foil').value.trim(),
-        prismatic_texture_url: row.querySelector('.e-prism').value.trim()
+        prismatic_texture_url: row.querySelector('.e-prism').value.trim(),
+        set_id: currentSetId
       }));
 
       const { error } = await supabaseClient.from('cards').upsert(updatedCards);
@@ -509,12 +573,12 @@
       } else {
         alert('Successfully updated master catalog in Supabase!');
         document.getElementById('adminModal').classList.remove('active');
-        fetchMasterCards();
+        fetchMasterCards(currentSetId);
       }
     });
 
     document.getElementById('resetDefaultBtn').addEventListener('click', () => {
-      fetchMasterCards();
+      fetchMasterCards(currentSetId);
       document.getElementById('adminModal').classList.remove('active');
     });
 
