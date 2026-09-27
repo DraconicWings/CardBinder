@@ -239,7 +239,6 @@
         const { data: { session } } = await supabaseClient.auth.getSession();
         if (session?.user) {
           currentUser = session.user;
-          // Extract twitch_id from user metadata or fallback to user id mapping
           currentUserId = session.user.user_metadata?.provider_id || session.user.id;
           updateAuthUI(session.user);
           await fetchUserInventory(currentUserId);
@@ -332,7 +331,6 @@
         await fetchMasterCards(currentSetId);
       } catch (err) {
         console.error('Error fetching card sets:', err);
-        // Fallback load default set
         await fetchMasterCards('wings_and_friends');
       }
     }
@@ -374,7 +372,6 @@
     async function fetchUserInventory(twitchId) {
       if (!twitchId) return;
       try {
-        // Queries inventory matching the user's twitch_id from your schema
         const { data, error } = await supabaseClient
           .from('user_inventory')
           .select('*')
@@ -383,8 +380,8 @@
         if (!error && data) {
           userInventory = {};
           data.forEach(item => {
-            // Key by card_id or variant if tracking specific variants
-            userInventory[item.card_id] = item.quantity || 0;
+            const key = `${item.card_id}_${item.variant}`;
+            userInventory[key] = item.quantity || 0;
           });
           render();
         }
@@ -395,7 +392,7 @@
 
     function render() {
       const grid = document.getElementById('cardGrid');
-      const variant = document.getElementById('variantSelect').value;
+      const selectedVariant = document.getElementById('variantSelect').value;
       grid.innerHTML = '';
 
       if (masterCards.length === 0) {
@@ -404,7 +401,8 @@
       }
 
       masterCards.forEach((card) => {
-        const quantity = userInventory[card.Card_ID] || 0;
+        const inventoryKey = `${card.Card_ID}_${selectedVariant}`;
+        const quantity = userInventory[inventoryKey] || 0;
         const isOwned = quantity > 0;
         
         const cardEl = document.createElement('div');
@@ -414,7 +412,7 @@
           <div class="card-3d-wrapper">
             <div class="face face-front">
               <img class="card-img" src="${card.ArtworkURL}" alt="${card.Card_Name}">
-              <div class="finish-layer" style="${getFinishConfig(variant, card, 50, 50)}"></div>
+              <div class="finish-layer" style="${getFinishConfig(selectedVariant, card, 50, 50)}"></div>
             </div>
             <div class="face face-back">
               <img class="card-img" src="${card.CardBackURL}" alt="Back">
@@ -434,27 +432,27 @@
 
           wrapper.style.transform = `rotateX(${(-yc / rect.height) * 14}deg) rotateY(${(xc / rect.width) * 14}deg)`;
 
-          if ((variant === 'Foil' && card.Foil_Matte) || (variant === 'Prismatic' && card.Prismatic_Texture)) {
+          if ((selectedVariant === 'Foil' && card.Foil_Matte) || (selectedVariant === 'Prismatic' && card.Prismatic_Texture)) {
             const posX = (x / rect.width) * 100;
             const posY = (y / rect.height) * 100;
-            if (variant === 'Foil') {
+            if (selectedVariant === 'Foil') {
               finishLayer.style.backgroundPosition = `${posX}% ${posY}%`;
-            } else if (variant === 'Prismatic') {
-              finishLayer.style.cssText = getFinishConfig(variant, card, posX, posY);
+            } else if (selectedVariant === 'Prismatic') {
+              finishLayer.style.cssText = getFinishConfig(selectedVariant, card, posX, posY);
             }
           }
         });
 
         cardEl.addEventListener('mouseleave', () => {
           wrapper.style.transform = `rotateX(0deg) rotateY(0deg)`;
-          if (variant === 'Foil' && card.Foil_Matte) {
+          if (selectedVariant === 'Foil' && card.Foil_Matte) {
             finishLayer.style.backgroundPosition = `50% 50%`;
-          } else if (variant === 'Prismatic' && card.Prismatic_Texture) {
-            finishLayer.style.cssText = getFinishConfig(variant, card, 50, 50);
+          } else if (selectedVariant === 'Prismatic' && card.Prismatic_Texture) {
+            finishLayer.style.cssText = getFinishConfig(selectedVariant, card, 50, 50);
           }
         });
 
-        cardEl.addEventListener('click', () => openModal(card, quantity, variant, isOwned));
+        cardEl.addEventListener('click', () => openModal(card, quantity, selectedVariant, isOwned));
         grid.appendChild(cardEl);
       });
     }
