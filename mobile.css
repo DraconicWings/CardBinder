@@ -47,6 +47,11 @@
     gap: 16px;
   }
 
+  /* Prevent default touch scrolling/gestures on cards & stage during mobile tilt */
+  .card-container, .card-3d-wrapper, .modal-card-stage {
+    touch-action: none;
+  }
+
   /* Modals & Popups Adaptation */
   .modal-box, .trade-modal-box {
     max-width: 95vw;
