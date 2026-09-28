@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Card Binder01</title>
+  <title>Card Binder02</title>
   <!-- Supabase JS Client SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
@@ -37,6 +37,32 @@
     .user-pill { display: flex; align-items: center; gap: 8px; background: #2d2d35; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; }
     .btn-twitch { background: var(--accent); color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 700; display: flex; align-items: center; gap: 6px; }
     .btn-twitch:hover { background: var(--accent-hover); }
+
+    /* Trade Notification Badge Styles */
+    .trade-btn-container {
+      position: relative;
+      display: inline-block;
+    }
+    .notification-badge {
+      position: absolute;
+      top: -7px;
+      right: -7px;
+      background-color: #ff3b30;
+      color: white;
+      border-radius: 50%;
+      padding: 2px 6px;
+      font-size: 11px;
+      font-weight: bold;
+      min-width: 18px;
+      height: 18px;
+      text-align: center;
+      line-height: 14px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.4);
+      pointer-events: none;
+    }
+    .notification-badge.hidden {
+      display: none;
+    }
 
     main { flex: 1; padding: 32px 24px; max-width: 1400px; margin: 0 auto; width: 100%; }
     .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--card-w), 1fr)); gap: 28px; justify-items: center; }
@@ -366,6 +392,7 @@
           updateAuthUI(session.user);
           await syncUsernameToInventory(currentUserId, currentUsername);
           await fetchUserInventory(currentUserId);
+          await updatePendingTradesBadge();
         } else {
           updateAuthUI(null);
         }
@@ -378,6 +405,7 @@
             updateAuthUI(session.user);
             await syncUsernameToInventory(currentUserId, currentUsername);
             await fetchUserInventory(currentUserId);
+            await updatePendingTradesBadge();
           } else {
             currentUser = null;
             currentUserId = null;
@@ -387,6 +415,29 @@
         });
       } catch (err) {
         console.warn("Auth initialization warning:", err);
+      }
+    }
+
+    async function updatePendingTradesBadge() {
+      if (!currentUserId) return;
+      const badge = document.getElementById('pendingTradeBadge');
+      if (!badge) return;
+
+      try {
+        const { count, error } = await supabaseClient
+          .from('trades')
+          .select('*', { count: 'exact', head: true })
+          .eq('receiver_twitch_id', currentUserId)
+          .eq('status', 'pending');
+
+        if (!error && count > 0) {
+          badge.textContent = count;
+          badge.classList.remove('hidden');
+        } else {
+          badge.classList.add('hidden');
+        }
+      } catch (e) {
+        console.warn("Could not update pending trade badge:", e);
       }
     }
 
@@ -409,7 +460,10 @@
         const avatar = user.user_metadata?.avatar_url;
         authSection.innerHTML = `
           <button class="btn btn-primary" id="openProposeTradeModalBtn" style="padding: 6px 12px; font-size: 0.8rem;">🤝 Propose Trade</button>
-          <button class="btn btn-primary" id="openTradesBtn" style="padding: 6px 12px; font-size: 0.8rem;">📥 Trade Inbox</button>
+          <div class="trade-btn-container">
+            <button class="btn btn-primary" id="openTradesBtn" style="padding: 6px 12px; font-size: 0.8rem;">📥 Trade Inbox</button>
+            <span id="pendingTradeBadge" class="notification-badge hidden">0</span>
+          </div>
           <div class="user-pill">
             ${avatar ? `<img src="${avatar}" style="width:22px; height:22px; border-radius:50%; object-fit:cover;" />` : ''}
             <span>${username}</span>
@@ -426,6 +480,9 @@
         document.getElementById('openProposeTradeModalBtn').addEventListener('click', () => {
           openProposeTradeModal();
         });
+        
+        // Refresh the badge right after updating the UI
+        updatePendingTradesBadge();
       } else {
         authSection.innerHTML = `<button class="btn-twitch" id="loginBtn">Log in with Twitch</button>`;
         document.getElementById('loginBtn').addEventListener('click', async () => {
@@ -908,6 +965,9 @@
         container.innerHTML = `<p style="color: #ff6b6b; text-align: center;">Error loading trades: ${error.message}</p>`;
         return;
       }
+
+      // Update badge count dynamically
+      await updatePendingTradesBadge();
 
       if (!trades || trades.length === 0) {
         container.innerHTML = `<p style="color: var(--text-muted); text-align: center;">No pending trade requests.</p>`;
