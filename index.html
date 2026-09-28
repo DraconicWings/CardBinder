@@ -120,11 +120,25 @@
     /* Trade Modal Styles */
     .trade-modal-box {
       background: #18181b; border: 1px solid #2d2d35; border-radius: 18px;
-      width: 100%; max-width: 650px; max-height: 80vh; display: flex; flex-direction: column; overflow: hidden; position: relative;
+      width: 100%; max-width: 720px; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; position: relative;
     }
     .trade-modal-header { background: #1f1f23; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #2d2d35; }
     .trade-modal-body { padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
     .trade-item { background: #222228; border: 1px solid #33333d; border-radius: 10px; padding: 16px; display: flex; justify-content: space-between; align-items: center; }
+
+    /* Visual Trade Preview Styles */
+    .trade-preview-container {
+      display: flex; justify-content: center; align-items: center; gap: 20px; background: #111114; border: 1px solid #2d2d35; border-radius: 12px; padding: 16px; margin-bottom: 6px;
+    }
+    .trade-preview-side { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+    .trade-preview-label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; }
+    .mini-card-preview {
+      width: 110px; height: 154px; border-radius: 8px; background: #18181b; box-shadow: 0 6px 16px rgba(0,0,0,0.6); position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; border: 1px solid #33333d;
+    }
+    .mini-card-preview img { width: 100%; height: 100%; object-fit: cover; }
+    .mini-card-preview .finish-layer { border-radius: 8px; }
+    .preview-placeholder { font-size: 0.75rem; color: var(--text-muted); text-align: center; padding: 10px; }
+    .trade-arrow { font-size: 1.5rem; color: var(--accent); font-weight: bold; }
 
     /* Autocomplete dropdown styles */
     .autocomplete-wrapper { position: relative; }
@@ -212,45 +226,71 @@
 
   <!-- Propose Trade Modal -->
   <div class="modal-overlay" id="proposeTradeModalOverlay">
-    <div class="trade-modal-box" style="max-width: 450px;">
+    <div class="trade-modal-box">
       <div class="trade-modal-header">
         <h3>🤝 Propose Trade</h3>
         <button class="btn" id="closeProposeModalBtn">&times;</button>
       </div>
       <div class="trade-modal-body">
-        <div>
-          <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 4px;">Select Card You Own:</label>
-          <select id="propOfferCardSelect" class="select-field" style="width: 100%;">
-            <option value="">-- Choose owned card --</option>
-          </select>
+        <!-- Visual Trade Preview Section -->
+        <div class="trade-preview-container">
+          <div class="trade-preview-side">
+            <span class="trade-preview-label">You Offer</span>
+            <div class="mini-card-preview" id="previewOfferCard">
+              <span class="preview-placeholder">No card selected</span>
+            </div>
+          </div>
+          <div class="trade-arrow">⇄</div>
+          <div class="trade-preview-side">
+            <span class="trade-preview-label">You Receive</span>
+            <div class="mini-card-preview" id="previewWantCard">
+              <span class="preview-placeholder">No card selected</span>
+            </div>
+          </div>
         </div>
-        <div>
-          <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 4px;">Select Variant to Offer:</label>
-          <select id="propOfferVariantSelect" class="select-field" style="width: 100%;">
-            <option value="">-- Choose variant --</option>
-          </select>
+
+        <div style="display: flex; gap: 12px;">
+          <div style="flex: 1;">
+            <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 4px;">Select Card You Offer:</label>
+            <select id="propOfferCardSelect" class="select-field" style="width: 100%;">
+              <option value="">-- Choose owned card --</option>
+            </select>
+          </div>
+          <div style="flex: 1;">
+            <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 4px;">Offer Variant:</label>
+            <select id="propOfferVariantSelect" class="select-field" style="width: 100%;">
+              <option value="">-- Choose variant --</option>
+            </select>
+          </div>
         </div>
-        <div class="autocomplete-wrapper">
-          <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 4px;">Receiver Twitch Username:</label>
-          <input type="text" id="propReceiverUsername" class="input-field" placeholder="Start typing username..." autocomplete="off" />
-          <input type="hidden" id="propReceiverId" />
-          <div class="autocomplete-dropdown" id="userAutocompleteDropdown"></div>
+
+        <div style="display: flex; gap: 12px;">
+          <div style="flex: 1;" class="autocomplete-wrapper">
+            <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 4px;">Receiver Twitch Username:</label>
+            <input type="text" id="propReceiverUsername" class="input-field" placeholder="Start typing username..." autocomplete="off" />
+            <input type="hidden" id="propReceiverId" />
+            <div class="autocomplete-dropdown" id="userAutocompleteDropdown"></div>
+          </div>
         </div>
-        <div>
-          <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 4px;">What Card Do You Want?</label>
-          <select id="propWantCardSelect" class="select-field" style="width: 100%;">
-            <option value="">-- Choose desired card --</option>
-          </select>
+
+        <div style="display: flex; gap: 12px;">
+          <div style="flex: 1;">
+            <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 4px;">Select Card You Want:</label>
+            <select id="propWantCardSelect" class="select-field" style="width: 100%;">
+              <option value="">-- Choose desired card --</option>
+            </select>
+          </div>
+          <div style="flex: 1;">
+            <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 4px;">Desired Variant:</label>
+            <select id="propWantVariant" class="select-field" style="width: 100%;">
+              <option value="Normal">Normal</option>
+              <option value="Foil">Foil</option>
+              <option value="Prismatic">Prismatic</option>
+            </select>
+          </div>
         </div>
-        <div>
-          <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 4px;">Desired Variant:</label>
-          <select id="propWantVariant" class="select-field" style="width: 100%;">
-            <option value="Normal">Normal</option>
-            <option value="Foil">Foil</option>
-            <option value="Prismatic">Prismatic</option>
-          </select>
-        </div>
-        <button class="btn btn-primary" id="submitTradeOfferBtn" style="margin-top: 10px; width: 100%;">Send Trade Request</button>
+
+        <button class="btn btn-primary" id="submitTradeOfferBtn" style="margin-top: 6px; width: 100%;">Send Trade Request</button>
       </div>
     </div>
   </div>
@@ -640,11 +680,11 @@
     const offerCardSelect = document.getElementById('propOfferCardSelect');
     const offerVariantSelect = document.getElementById('propOfferVariantSelect');
     const wantCardSelect = document.getElementById('propWantCardSelect');
+    const wantVariantSelect = document.getElementById('propWantVariant');
 
     function openProposeTradeModal() {
       if (!currentUserId) return;
       
-      // Populate owned cards dropdown (name only)
       const ownedCardsMap = new Map();
       Object.keys(userInventory).forEach(key => {
         if (userInventory[key] > 0) {
@@ -667,7 +707,6 @@
 
       offerVariantSelect.innerHTML = '<option value="">-- Choose variant --</option>';
 
-      // Populate want card dropdown with all master cards of the current set
       wantCardSelect.innerHTML = '<option value="">-- Choose desired card --</option>';
       masterCards.forEach(card => {
         const opt = document.createElement('option');
@@ -678,26 +717,73 @@
 
       usernameInput.value = '';
       receiverIdInput.value = '';
-      document.getElementById('propWantVariant').value = 'Normal';
+      wantVariantSelect.value = 'Normal';
       autocompleteDropdown.style.display = 'none';
+
+      updateTradePreviews();
       proposeModalOverlay.classList.add('active');
     }
 
     offerCardSelect.addEventListener('change', (e) => {
       const selectedCardId = e.target.value;
       offerVariantSelect.innerHTML = '<option value="">-- Choose variant --</option>';
-      if (!selectedCardId) return;
-
-      ['Normal', 'Foil', 'Prismatic'].forEach(variant => {
-        const key = `${selectedCardId}_${variant}`;
-        if (userInventory[key] > 0) {
-          const opt = document.createElement('option');
-          opt.value = variant;
-          opt.textContent = `${variant} (${userInventory[key]}x owned)`;
-          offerVariantSelect.appendChild(opt);
-        }
-      });
+      if (selectedCardId) {
+        ['Normal', 'Foil', 'Prismatic'].forEach(variant => {
+          const key = `${selectedCardId}_${variant}`;
+          if (userInventory[key] > 0) {
+            const opt = document.createElement('option');
+            opt.value = variant;
+            opt.textContent = `${variant} (${userInventory[key]}x owned)`;
+            offerVariantSelect.appendChild(opt);
+          }
+        });
+      }
+      updateTradePreviews();
     });
+
+    offerVariantSelect.addEventListener('change', updateTradePreviews);
+    wantCardSelect.addEventListener('change', updateTradePreviews);
+    wantVariantSelect.addEventListener('change', updateTradePreviews);
+
+    function updateTradePreviews() {
+      const offerPreview = document.getElementById('previewOfferCard');
+      const wantPreview = document.getElementById('previewWantCard');
+
+      const offerCardId = offerCardSelect.value;
+      const offerVariant = offerVariantSelect.value;
+      const wantCardId = wantCardSelect.value;
+      const wantVariant = wantVariantSelect.value;
+
+      // Render Offer Card Preview
+      if (offerCardId && offerVariant) {
+        const card = masterCards.find(c => c.Card_ID === offerCardId);
+        if (card) {
+          offerPreview.innerHTML = `
+            <img src="${card.ArtworkURL}" alt="${card.Card_Name}">
+            <div class="finish-layer" style="${getFinishConfig(offerVariant, card, 50, 50)}"></div>
+          `;
+        } else {
+          offerPreview.innerHTML = `<span class="preview-placeholder">Invalid card</span>`;
+        }
+      } else {
+        offerPreview.innerHTML = `<span class="preview-placeholder">No card selected</span>`;
+      }
+
+      // Render Want Card Preview
+      if (wantCardId && wantVariant) {
+        const card = masterCards.find(c => c.Card_ID === wantCardId);
+        if (card) {
+          wantPreview.innerHTML = `
+            <img src="${card.ArtworkURL}" alt="${card.Card_Name}">
+            <div class="finish-layer" style="${getFinishConfig(wantVariant, card, 50, 50)}"></div>
+          `;
+        } else {
+          wantPreview.innerHTML = `<span class="preview-placeholder">Invalid card</span>`;
+        }
+      } else {
+        wantPreview.innerHTML = `<span class="preview-placeholder">No card selected</span>`;
+      }
+    }
 
     document.getElementById('closeProposeModalBtn').addEventListener('click', () => proposeModalOverlay.classList.remove('active'));
 
@@ -768,7 +854,7 @@
       }
 
       const wantCardId = wantCardSelect.value;
-      const wantVariant = document.getElementById('propWantVariant').value;
+      const wantVariant = wantVariantSelect.value;
 
       if (!offerCardId || !offerVariant) {
         alert('Please select the card and variant you want to offer from your inventory.');
