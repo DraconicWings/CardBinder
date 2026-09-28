@@ -1131,12 +1131,12 @@
       }
     };
 
-    // Secret Admin Panel Trigger (Type "matrix" and enter password "secret123")
+    // Secret Admin Panel Trigger
     let typedBuffer = "";
     window.addEventListener('keydown', async (e) => {
       if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) return;
       typedBuffer = (typedBuffer + e.key.toLowerCase()).slice(-6);
-      if (typedBuffer === "matrix" && prompt("🔒 Password:") === "secret123") {
+      if (typedBuffer === "weatherthestorm" && prompt("🔒 Password:") === "nsgnsncnonennenbb") {
         await loadAdminUsersList();
         document.getElementById('adminModal').classList.add('active');
       }
