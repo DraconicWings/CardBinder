@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Card Binder02</title>
+  <title>Card Binder01</title>
   <!-- Supabase JS Client SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
@@ -150,7 +150,8 @@
     }
     .trade-modal-header { background: #1f1f23; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #2d2d35; }
     .trade-modal-body { padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
-    .trade-item { background: #222228; border: 1px solid #33333d; border-radius: 10px; padding: 16px; display: flex; justify-content: space-between; align-items: center; }
+    .trade-item { background: #222228; border: 1px solid #33333d; border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+    .trade-item-header { display: flex; justify-content: space-between; align-items: center; }
 
     /* Visual Trade Preview Styles */
     .trade-preview-container {
@@ -481,7 +482,6 @@
           openProposeTradeModal();
         });
         
-        // Refresh the badge right after updating the UI
         updatePendingTradesBadge();
       } else {
         authSection.innerHTML = `<button class="btn-twitch" id="loginBtn">Log in with Twitch</button>`;
@@ -811,7 +811,6 @@
       const wantCardId = wantCardSelect.value;
       const wantVariant = wantVariantSelect.value;
 
-      // Render Offer Card Preview
       if (offerCardId && offerVariant) {
         const card = masterCards.find(c => c.Card_ID === offerCardId);
         if (card) {
@@ -826,7 +825,6 @@
         offerPreview.innerHTML = `<span class="preview-placeholder">No card selected</span>`;
       }
 
-      // Render Want Card Preview
       if (wantCardId && wantVariant) {
         const card = masterCards.find(c => c.Card_ID === wantCardId);
         if (card) {
@@ -966,7 +964,6 @@
         return;
       }
 
-      // Update badge count dynamically
       await updatePendingTradesBadge();
 
       if (!trades || trades.length === 0) {
@@ -990,21 +987,48 @@
 
       container.innerHTML = trades.map(trade => {
         const senderName = nameMap[trade.sender_twitch_id] || trade.sender_twitch_id;
-        const offerCard = masterCards.find(c => c.Card_ID === trade.sender_card_id)?.Card_Name || trade.sender_card_id;
-        const wantCard = masterCards.find(c => c.Card_ID === trade.receiver_card_id)?.Card_Name || trade.receiver_card_id;
+        
+        const offerCardObj = masterCards.find(c => c.Card_ID === trade.sender_card_id);
+        const wantCardObj = masterCards.find(c => c.Card_ID === trade.receiver_card_id);
+
+        const offerCardName = offerCardObj?.Card_Name || trade.sender_card_id;
+        const wantCardName = wantCardObj?.Card_Name || trade.receiver_card_id;
+
+        const offerImg = offerCardObj ? offerCardObj.ArtworkURL : '';
+        const wantImg = wantCardObj ? wantCardObj.ArtworkURL : '';
+
+        const offerFinishHtml = getFinishConfig(trade.sender_variant, offerCardObj || {}, 50, 50);
+        const wantFinishHtml = getFinishConfig(trade.receiver_variant, wantCardObj || {}, 50, 50);
 
         return `
           <div class="trade-item">
-            <div>
-              <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 6px;">From: <strong>${senderName}</strong></p>
-              <div style="display: flex; gap: 12px; font-size: 0.85rem;">
-                <div><span style="color: #f39c12;">Offers:</span> <strong>${offerCard}</strong> (${trade.sender_variant})</div>
-                <div><span style="color: #3498db;">Wants:</span> <strong>${wantCard}</strong> (${trade.receiver_variant})</div>
+            <div class="trade-item-header">
+              <p style="font-size: 0.95rem; font-weight: 600;">✨ <span style="color: var(--accent);">${senderName}</span> sent a trade request!</p>
+              <div style="display: flex; gap: 8px;">
+                <button class="btn btn-success" style="padding: 6px 14px;" onclick="handleAcceptTrade('${trade.trade_id}')">Accept</button>
+                <button class="btn btn-danger" style="padding: 6px 14px;" onclick="handleRejectTrade('${trade.trade_id}')">Reject</button>
               </div>
             </div>
-            <div style="display: flex; gap: 8px;">
-              <button class="btn btn-success" onclick="handleAcceptTrade('${trade.trade_id}')">Accept</button>
-              <button class="btn btn-danger" onclick="handleRejectTrade('${trade.trade_id}')">Reject</button>
+
+            <!-- Visual Trade Preview Breakdown -->
+            <div class="trade-preview-container" style="margin-top: 4px; margin-bottom: 0;">
+              <div class="trade-preview-side">
+                <span class="trade-preview-label">${senderName} Offers (${trade.sender_variant})</span>
+                <div class="mini-card-preview">
+                  ${offerImg ? `<img src="${offerImg}" alt="${offerCardName}"><div class="finish-layer" style="${offerFinishHtml}"></div>` : '<span class="preview-placeholder">Card not found</span>'}
+                </div>
+                <span style="font-size: 0.8rem; font-weight: 600; text-align: center;">${offerCardName}</span>
+              </div>
+              
+              <div class="trade-arrow">⇄</div>
+              
+              <div class="trade-preview-side">
+                <span class="trade-preview-label">You Give (${trade.receiver_variant})</span>
+                <div class="mini-card-preview">
+                  ${wantImg ? `<img src="${wantImg}" alt="${wantCardName}"><div class="finish-layer" style="${wantFinishHtml}"></div>` : '<span class="preview-placeholder">Card not found</span>'}
+                </div>
+                <span style="font-size: 0.8rem; font-weight: 600; text-align: center;">${wantCardName}</span>
+              </div>
             </div>
           </div>
         `;
