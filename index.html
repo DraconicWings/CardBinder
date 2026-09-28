@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Card Binder</title>
+  <title>Card Binder01</title>
   <!-- Supabase JS Client SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
@@ -126,6 +126,16 @@
     .trade-modal-body { padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
     .trade-item { background: #222228; border: 1px solid #33333d; border-radius: 10px; padding: 16px; display: flex; justify-content: space-between; align-items: center; }
 
+    /* Autocomplete dropdown styles */
+    .autocomplete-wrapper { position: relative; }
+    .autocomplete-dropdown {
+      position: absolute; top: 100%; left: 0; right: 0; background: #1f1f23;
+      border: 1px solid #3a3a44; border-top: none; border-radius: 0 0 6px 6px;
+      max-height: 150px; overflow-y: auto; z-index: 50; display: none;
+    }
+    .autocomplete-item { padding: 8px 12px; cursor: pointer; font-size: 0.9rem; }
+    .autocomplete-item:hover { background: #2d2d35; }
+
     .admin-modal {
       position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.92); z-index: 2000;
       display: none; justify-content: center; align-items: center; padding: 20px;
@@ -213,9 +223,11 @@
           <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 4px;">You Are Offering:</label>
           <input type="text" id="propOfferCard" class="input-field" readonly />
         </div>
-        <div>
-          <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 4px;">Receiver Twitch ID:</label>
-          <input type="text" id="propReceiverId" class="input-field" placeholder="e.g. 12345678" />
+        <div class="autocomplete-wrapper">
+          <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 4px;">Receiver Twitch Username:</label>
+          <input type="text" id="propReceiverUsername" class="input-field" placeholder="Start typing username..." autocomplete="off" />
+          <input type="hidden" id="propReceiverId" />
+          <div class="autocomplete-dropdown" id="userAutocompleteDropdown"></div>
         </div>
         <div>
           <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 4px;">What Card Do You Want? (Card ID)</label>
@@ -290,6 +302,7 @@
     let userInventory = {};
     let currentUser = null;
     let currentUserId = null;
+    let currentUsername = null;
     let isFlipped = false;
     let currentSetId = 'wings_and_friends';
     let selectedActiveCard = null;
@@ -302,7 +315,9 @@
         if (session?.user) {
           currentUser = session.user;
           currentUserId = session.user.user_metadata?.provider_id || session.user.id;
+          currentUsername = session.user.user_metadata?.preferred_username || session.user.user_metadata?.full_name || 'Streamer';
           updateAuthUI(session.user);
+          await upsertUserProfile(currentUserId, currentUsername);
           await fetchUserInventory(currentUserId);
         } else {
           updateAuthUI(null);
@@ -312,16 +327,32 @@
           if (session?.user) {
             currentUser = session.user;
             currentUserId = session.user.user_metadata?.provider_id || session.user.id;
+            currentUsername = session.user.user_metadata?.preferred_username || session.user.user_metadata?.full_name || 'Streamer';
             updateAuthUI(session.user);
+            await upsertUserProfile(currentUserId, currentUsername);
             await fetchUserInventory(currentUserId);
           } else {
             currentUser = null;
             currentUserId = null;
+            currentUsername = null;
             updateAuthUI(null);
           }
         });
       } catch (err) {
         console.warn("Auth initialization warning:", err);
+      }
+    }
+
+    async function upsertUserProfile(twitchId, username) {
+      if (!twitchId) return;
+      try {
+        await supabaseClient.from('profiles').upsert({
+          twitch_id: twitchId,
+          username: username,
+          updated_at: new Date()
+        }, { onConflict: 'twitch_id' });
+      } catch (e) {
+        console.warn("Could not upsert profile automatically:", e);
       }
     }
 
@@ -600,26 +631,93 @@
       modalCard.style.transform = isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)';
     });
 
-    // Propose Trade Modal Logic
+    // Propose Trade Modal & Autocomplete Logic
     const proposeModalOverlay = document.getElementById('proposeTradeModalOverlay');
+    const usernameInput = document.getElementById('propReceiverUsername');
+    const receiverIdInput = document.getElementById('propReceiverId');
+    const autocompleteDropdown = document.getElementById('userAutocompleteDropdown');
+
     document.getElementById('modalTradeBtn').addEventListener('click', () => {
       if (!selectedActiveCard) return;
       document.getElementById('propOfferCard').value = `${selectedActiveCard.Card_Name} (${selectedActiveVariant}) [ID: ${selectedActiveCard.Card_ID}]`;
-      document.getElementById('propReceiverId').value = '';
+      usernameInput.value = '';
+      receiverIdInput.value = '';
       document.getElementById('propWantCardId').value = '';
+      autocompleteDropdown.style.display = 'none';
       proposeModalOverlay.classList.add('active');
     });
 
     document.getElementById('closeProposeModalBtn').addEventListener('click', () => proposeModalOverlay.classList.remove('active'));
 
+    usernameInput.addEventListener('input', async (e) => {
+      const query = e.target.value.trim();
+      receiverIdInput.value = ''; // Reset ID until selected or matched
+      if (query.length < 1) {
+        autocompleteDropdown.style.display = 'none';
+        return;
+      }
+
+      try {
+        // Query profiles table or user_inventory for matching usernames
+        const { data, error } = await supabaseClient
+          .from('profiles')
+          .select('twitch_id, username')
+          .ilike('username', `%${query}%`)
+          .limit(5);
+
+        if (error || !data || data.length === 0) {
+          autocompleteDropdown.style.display = 'none';
+          return;
+        }
+
+        autocompleteDropdown.innerHTML = data.map(user => `
+          <div class="autocomplete-item" data-id="${user.twitch_id}" data-name="${user.username}">
+            ${user.username}
+          </div>
+        `).join('');
+        autocompleteDropdown.style.display = 'block';
+      } catch (err) {
+        console.error('Error searching users:', err);
+        autocompleteDropdown.style.display = 'none';
+      }
+    });
+
+    autocompleteDropdown.addEventListener('click', (e) => {
+      const item = e.target.closest('.autocomplete-item');
+      if (!item) return;
+      usernameInput.value = item.getAttribute('data-name');
+      receiverIdInput.value = item.getAttribute('data-id');
+      autocompleteDropdown.style.display = 'none';
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.autocomplete-wrapper')) {
+        autocompleteDropdown.style.display = 'none';
+      }
+    });
+
     document.getElementById('submitTradeOfferBtn').addEventListener('click', async () => {
       if (!currentUserId || !selectedActiveCard) return;
-      const receiverId = document.getElementById('propReceiverId').value.trim();
+      let receiverId = receiverIdInput.value.trim();
+      const enteredUsername = usernameInput.value.trim();
+
+      // Fallback: if they typed a username directly without picking from dropdown, lookup exact match
+      if (!receiverId && enteredUsername) {
+        const { data } = await supabaseClient
+          .from('profiles')
+          .select('twitch_id')
+          .eq('username', enteredUsername)
+          .single();
+        if (data) {
+          receiverId = data.twitch_id;
+        }
+      }
+
       const wantCardId = document.getElementById('propWantCardId').value.trim();
       const wantVariant = document.getElementById('propWantVariant').value;
 
       if (!receiverId || !wantCardId) {
-        alert('Please fill out the receiver Twitch ID and the card ID you want.');
+        alert('Please specify a valid receiver username and the card ID you want.');
         return;
       }
 
@@ -672,21 +770,37 @@
         return;
       }
 
-      container.innerHTML = trades.map(trade => `
-        <div class="trade-item">
-          <div>
-            <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 6px;">From: <strong>${trade.sender_twitch_id}</strong></p>
-            <div style="display: flex; gap: 12px; font-size: 0.85rem;">
-              <div><span style="color: #f39c12;">Offers:</span> <strong>${trade.sender_card_id}</strong> (${trade.sender_variant})</div>
-              <div><span style="color: #3498db;">Wants:</span> <strong>${trade.receiver_card_id}</strong> (${trade.receiver_variant})</div>
+      // Resolve sender usernames for display
+      const senderIds = [...new Set(trades.map(t => t.sender_twitch_id))];
+      let profileMap = {};
+      if (senderIds.length > 0) {
+        const { data: profiles } = await supabaseClient
+          .from('profiles')
+          .select('twitch_id, username')
+          .in('twitch_id', senderIds);
+        if (profiles) {
+          profiles.forEach(p => { profileMap[p.twitch_id] = p.username; });
+        }
+      }
+
+      container.innerHTML = trades.map(trade => {
+        const senderName = profileMap[trade.sender_twitch_id] || trade.sender_twitch_id;
+        return `
+          <div class="trade-item">
+            <div>
+              <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 6px;">From: <strong>${senderName}</strong></p>
+              <div style="display: flex; gap: 12px; font-size: 0.85rem;">
+                <div><span style="color: #f39c12;">Offers:</span> <strong>${trade.sender_card_id}</strong> (${trade.sender_variant})</div>
+                <div><span style="color: #3498db;">Wants:</span> <strong>${trade.receiver_card_id}</strong> (${trade.receiver_variant})</div>
+              </div>
+            </div>
+            <div style="display: flex; gap: 8px;">
+              <button class="btn btn-success" onclick="handleAcceptTrade('${trade.trade_id}')">Accept</button>
+              <button class="btn btn-danger" onclick="handleRejectTrade('${trade.trade_id}')">Reject</button>
             </div>
           </div>
-          <div style="display: flex; gap: 8px;">
-            <button class="btn btn-success" onclick="handleAcceptTrade('${trade.trade_id}')">Accept</button>
-            <button class="btn btn-danger" onclick="handleRejectTrade('${trade.trade_id}')">Reject</button>
-          </div>
-        </div>
-      `).join('');
+        `;
+      }).join('');
     }
 
     window.handleAcceptTrade = async function(tradeId) {
