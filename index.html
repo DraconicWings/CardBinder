@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Card Binder01</title>
+  <title>Card Binder02</title>
   <!-- Supabase JS Client SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
@@ -206,7 +206,6 @@
         <div>Variant: <strong id="modalVariant">Normal</strong></div>
         <div style="background: #26262c; padding: 10px; border-radius: 8px; text-align: center;" id="modalQuantity">0x owned</div>
         <button class="btn-flip" id="modalFlipBtn">🔄 Flip Card</button>
-        <button class="btn btn-primary" id="modalTradeBtn" style="display: none;">🤝 Propose Trade</button>
       </div>
     </div>
   </div>
@@ -220,8 +219,16 @@
       </div>
       <div class="trade-modal-body">
         <div>
-          <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 4px;">You Are Offering:</label>
-          <input type="text" id="propOfferCard" class="input-field" readonly />
+          <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 4px;">Select Card You Own:</label>
+          <select id="propOfferCardSelect" class="select-field" style="width: 100%;">
+            <option value="">-- Choose owned card --</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 4px;">Select Variant to Offer:</label>
+          <select id="propOfferVariantSelect" class="select-field" style="width: 100%;">
+            <option value="">-- Choose variant --</option>
+          </select>
         </div>
         <div class="autocomplete-wrapper">
           <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 4px;">Receiver Twitch Username:</label>
@@ -305,8 +312,6 @@
     let currentUsername = null;
     let isFlipped = false;
     let currentSetId = 'wings_and_friends';
-    let selectedActiveCard = null;
-    let selectedActiveVariant = 'Normal';
 
     async function initAuth() {
       if (!supabaseClient) return;
@@ -317,7 +322,7 @@
           currentUserId = session.user.user_metadata?.provider_id || session.user.id;
           currentUsername = session.user.user_metadata?.preferred_username || session.user.user_metadata?.full_name || 'Streamer';
           updateAuthUI(session.user);
-          await upsertUserProfile(currentUserId, currentUsername);
+          await syncUsernameToInventory(currentUserId, currentUsername);
           await fetchUserInventory(currentUserId);
         } else {
           updateAuthUI(null);
@@ -329,7 +334,7 @@
             currentUserId = session.user.user_metadata?.provider_id || session.user.id;
             currentUsername = session.user.user_metadata?.preferred_username || session.user.user_metadata?.full_name || 'Streamer';
             updateAuthUI(session.user);
-            await upsertUserProfile(currentUserId, currentUsername);
+            await syncUsernameToInventory(currentUserId, currentUsername);
             await fetchUserInventory(currentUserId);
           } else {
             currentUser = null;
@@ -343,16 +348,15 @@
       }
     }
 
-    async function upsertUserProfile(twitchId, username) {
+    async function syncUsernameToInventory(twitchId, username) {
       if (!twitchId) return;
       try {
-        await supabaseClient.from('profiles').upsert({
-          twitch_id: twitchId,
-          username: username,
-          updated_at: new Date()
-        }, { onConflict: 'twitch_id' });
+        await supabaseClient
+          .from('user_inventory')
+          .update({ twitch_username: username })
+          .eq('twitch_id', twitchId);
       } catch (e) {
-        console.warn("Could not upsert profile automatically:", e);
+        console.warn("Could not sync username to inventory rows:", e);
       }
     }
 
@@ -362,7 +366,8 @@
         const username = user.user_metadata?.preferred_username || user.user_metadata?.full_name || 'Streamer';
         const avatar = user.user_metadata?.avatar_url;
         authSection.innerHTML = `
-          <button class="btn btn-primary" id="openTradesBtn" style="padding: 6px 12px; font-size: 0.8rem;">Trade Inbox</button>
+          <button class="btn btn-primary" id="openProposeTradeModalBtn" style="padding: 6px 12px; font-size: 0.8rem;">🤝 Propose Trade</button>
+          <button class="btn btn-primary" id="openTradesBtn" style="padding: 6px 12px; font-size: 0.8rem;">📥 Trade Inbox</button>
           <div class="user-pill">
             ${avatar ? `<img src="${avatar}" style="width:22px; height:22px; border-radius:50%; object-fit:cover;" />` : ''}
             <span>${username}</span>
@@ -375,6 +380,9 @@
         });
         document.getElementById('openTradesBtn').addEventListener('click', () => {
           openTradeInboxModal();
+        });
+        document.getElementById('openProposeTradeModalBtn').addEventListener('click', () => {
+          openProposeTradeModal();
         });
       } else {
         authSection.innerHTML = `<button class="btn-twitch" id="loginBtn">Log in with Twitch</button>`;
@@ -584,8 +592,6 @@
 
     function openModal(card, quantity, variant, isOwned) {
       isFlipped = false;
-      selectedActiveCard = card;
-      selectedActiveVariant = variant;
 
       document.getElementById('modalTitle').innerText = card.Card_Name;
       document.getElementById('modalVariant').innerText = variant;
@@ -593,13 +599,6 @@
       document.getElementById('modalFrontImg').src = card.ArtworkURL;
       document.getElementById('modalBackImg').src = card.CardBackURL;
       document.getElementById('modalFinishLayer').style.cssText = getFinishConfig(variant, card, 50, 50);
-      
-      const tradeBtn = document.getElementById('modalTradeBtn');
-      if (currentUserId && quantity > 0) {
-        tradeBtn.style.display = 'block';
-      } else {
-        tradeBtn.style.display = 'none';
-      }
 
       if (isOwned) {
         modalStage.classList.remove('unowned');
@@ -636,33 +635,73 @@
     const usernameInput = document.getElementById('propReceiverUsername');
     const receiverIdInput = document.getElementById('propReceiverId');
     const autocompleteDropdown = document.getElementById('userAutocompleteDropdown');
+    const offerCardSelect = document.getElementById('propOfferCardSelect');
+    const offerVariantSelect = document.getElementById('propOfferVariantSelect');
 
-    document.getElementById('modalTradeBtn').addEventListener('click', () => {
-      if (!selectedActiveCard) return;
-      document.getElementById('propOfferCard').value = `${selectedActiveCard.Card_Name} (${selectedActiveVariant}) [ID: ${selectedActiveCard.Card_ID}]`;
+    function openProposeTradeModal() {
+      if (!currentUserId) return;
+      
+      // Populate owned cards dropdown
+      const ownedCardsMap = new Map();
+      Object.keys(userInventory).forEach(key => {
+        if (userInventory[key] > 0) {
+          const lastUnderscore = key.lastIndexOf('_');
+          const cardId = key.substring(0, lastUnderscore);
+          const variant = key.substring(lastUnderscore + 1);
+          const masterCard = masterCards.find(c => c.Card_ID === cardId);
+          if (masterCard) {
+            ownedCardsMap.set(cardId, masterCard.Card_Name);
+          }
+        }
+      });
+
+      offerCardSelect.innerHTML = '<option value="">-- Choose owned card --</option>';
+      ownedCardsMap.forEach((name, cardId) => {
+        const opt = document.createElement('option');
+        opt.value = cardId;
+        opt.textContent = `${name} (${cardId})`;
+        offerCardSelect.appendChild(opt);
+      });
+
+      offerVariantSelect.innerHTML = '<option value="">-- Choose variant --</option>';
       usernameInput.value = '';
       receiverIdInput.value = '';
       document.getElementById('propWantCardId').value = '';
       autocompleteDropdown.style.display = 'none';
       proposeModalOverlay.classList.add('active');
+    }
+
+    offerCardSelect.addEventListener('change', (e) => {
+      const selectedCardId = e.target.value;
+      offerVariantSelect.innerHTML = '<option value="">-- Choose variant --</option>';
+      if (!selectedCardId) return;
+
+      ['Normal', 'Foil', 'Prismatic'].forEach(variant => {
+        const key = `${selectedCardId}_${variant}`;
+        if (userInventory[key] > 0) {
+          const opt = document.createElement('option');
+          opt.value = variant;
+          opt.textContent = `${variant} (${userInventory[key]}x owned)`;
+          offerVariantSelect.appendChild(opt);
+        }
+      });
     });
 
     document.getElementById('closeProposeModalBtn').addEventListener('click', () => proposeModalOverlay.classList.remove('active'));
 
     usernameInput.addEventListener('input', async (e) => {
       const query = e.target.value.trim();
-      receiverIdInput.value = ''; // Reset ID until selected or matched
+      receiverIdInput.value = '';
       if (query.length < 1) {
         autocompleteDropdown.style.display = 'none';
         return;
       }
 
       try {
-        // Query profiles table or user_inventory for matching usernames
         const { data, error } = await supabaseClient
-          .from('profiles')
-          .select('twitch_id, username')
-          .ilike('username', `%${query}%`)
+          .from('user_inventory')
+          .select('twitch_id, twitch_username')
+          .ilike('twitch_username', `%${query}%`)
           .limit(5);
 
         if (error || !data || data.length === 0) {
@@ -670,9 +709,11 @@
           return;
         }
 
-        autocompleteDropdown.innerHTML = data.map(user => `
-          <div class="autocomplete-item" data-id="${user.twitch_id}" data-name="${user.username}">
-            ${user.username}
+        const uniqueUsers = Array.from(new Map(data.map(item => [item.twitch_id, item])).values());
+
+        autocompleteDropdown.innerHTML = uniqueUsers.map(user => `
+          <div class="autocomplete-item" data-id="${user.twitch_id}" data-name="${user.twitch_username}">
+            ${user.twitch_username || user.twitch_id}
           </div>
         `).join('');
         autocompleteDropdown.style.display = 'block';
@@ -697,24 +738,30 @@
     });
 
     document.getElementById('submitTradeOfferBtn').addEventListener('click', async () => {
-      if (!currentUserId || !selectedActiveCard) return;
+      if (!currentUserId) return;
+      const offerCardId = offerCardSelect.value;
+      const offerVariant = offerVariantSelect.value;
       let receiverId = receiverIdInput.value.trim();
       const enteredUsername = usernameInput.value.trim();
 
-      // Fallback: if they typed a username directly without picking from dropdown, lookup exact match
       if (!receiverId && enteredUsername) {
         const { data } = await supabaseClient
-          .from('profiles')
+          .from('user_inventory')
           .select('twitch_id')
-          .eq('username', enteredUsername)
-          .single();
-        if (data) {
-          receiverId = data.twitch_id;
+          .eq('twitch_username', enteredUsername)
+          .limit(1);
+        if (data && data.length > 0) {
+          receiverId = data[0].twitch_id;
         }
       }
 
       const wantCardId = document.getElementById('propWantCardId').value.trim();
       const wantVariant = document.getElementById('propWantVariant').value;
+
+      if (!offerCardId || !offerVariant) {
+        alert('Please select the card and variant you want to offer from your inventory.');
+        return;
+      }
 
       if (!receiverId || !wantCardId) {
         alert('Please specify a valid receiver username and the card ID you want.');
@@ -724,8 +771,8 @@
       const { error } = await supabaseClient.from('trades').insert([{
         sender_twitch_id: currentUserId,
         receiver_twitch_id: receiverId,
-        sender_card_id: selectedActiveCard.Card_ID,
-        sender_variant: selectedActiveVariant,
+        sender_card_id: offerCardId,
+        sender_variant: offerVariant,
         receiver_card_id: wantCardId,
         receiver_variant: wantVariant,
         status: 'pending'
@@ -736,7 +783,6 @@
       } else {
         alert('Trade proposal sent successfully!');
         proposeModalOverlay.classList.remove('active');
-        modalOverlay.classList.remove('active');
       }
     });
 
@@ -770,21 +816,22 @@
         return;
       }
 
-      // Resolve sender usernames for display
       const senderIds = [...new Set(trades.map(t => t.sender_twitch_id))];
-      let profileMap = {};
+      let nameMap = {};
       if (senderIds.length > 0) {
-        const { data: profiles } = await supabaseClient
-          .from('profiles')
-          .select('twitch_id, username')
+        const { data: invData } = await supabaseClient
+          .from('user_inventory')
+          .select('twitch_id, twitch_username')
           .in('twitch_id', senderIds);
-        if (profiles) {
-          profiles.forEach(p => { profileMap[p.twitch_id] = p.username; });
+        if (invData) {
+          invData.forEach(inv => {
+            if (inv.twitch_username) nameMap[inv.twitch_id] = inv.twitch_username;
+          });
         }
       }
 
       container.innerHTML = trades.map(trade => {
-        const senderName = profileMap[trade.sender_twitch_id] || trade.sender_twitch_id;
+        const senderName = nameMap[trade.sender_twitch_id] || trade.sender_twitch_id;
         return `
           <div class="trade-item">
             <div>
