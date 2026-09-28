@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Card Binder01</title>
+  <title>Card Binder</title>
   <!-- Supabase JS Client SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
@@ -113,9 +113,9 @@
       display: flex; align-items: center; justify-content: center; perspective: 1200px; padding: 20px;
     }
     .modal-card-stage .card-3d-wrapper { width: 250px; height: 350px; }
-    .modal-details { flex: 1; min-width: 260px; padding: 36px; display: flex; flex-direction: column; justify-content: center; gap: 18px; }
-    .btn-flip { background: var(--accent); color: white; border: none; padding: 12px; border-radius: 8px; font-weight: 700; cursor: pointer; }
-    .btn-flip:hover { background: var(--accent-hover); }
+    .modal-details { flex: 1; min-width: 260px; padding: 36px; display: flex; flex-direction: column; justify-content: center; gap: 14px; }
+    .btn-flip { background: #2d2d35; color: white; border: none; padding: 10px; border-radius: 8px; font-weight: 700; cursor: pointer; }
+    .btn-flip:hover { background: #3a3a44; }
 
     /* Trade Modal Styles */
     .trade-modal-box {
@@ -141,9 +141,11 @@
     .admin-footer { padding: 16px 20px; background: #1f1f23; border-top: 1px solid #2d2d35; display: flex; justify-content: space-between; align-items: center; }
     .btn { background: #2d2d35; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; }
     .btn-primary { background: var(--accent); }
+    .btn-primary:hover { background: var(--accent-hover); }
     .btn-danger { background: #5a2020; }
     .btn-success { background: #198754; }
     .btn-success:hover { background: #157347; }
+    .input-field { background: #0e0e10; border: 1px solid #3a3a44; color: var(--text); padding: 8px 12px; border-radius: 6px; outline: none; width: 100%; }
   </style>
 </head>
 <body>
@@ -192,8 +194,42 @@
       <div class="modal-details">
         <h2 id="modalTitle">Card Title</h2>
         <div>Variant: <strong id="modalVariant">Normal</strong></div>
+        <div style="background: #26262c; padding: 10px; border-radius: 8px; text-align: center;" id="modalQuantity">0x owned</div>
         <button class="btn-flip" id="modalFlipBtn">🔄 Flip Card</button>
-        <div style="background: #26262c; padding: 12px; border-radius: 8px; text-align: center;" id="modalQuantity">0x owned</div>
+        <button class="btn btn-primary" id="modalTradeBtn" style="display: none;">🤝 Propose Trade</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Propose Trade Modal -->
+  <div class="modal-overlay" id="proposeTradeModalOverlay">
+    <div class="trade-modal-box" style="max-width: 450px;">
+      <div class="trade-modal-header">
+        <h3>🤝 Propose Trade</h3>
+        <button class="btn" id="closeProposeModalBtn">&times;</button>
+      </div>
+      <div class="trade-modal-body">
+        <div>
+          <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 4px;">You Are Offering:</label>
+          <input type="text" id="propOfferCard" class="input-field" readonly />
+        </div>
+        <div>
+          <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 4px;">Receiver Twitch ID:</label>
+          <input type="text" id="propReceiverId" class="input-field" placeholder="e.g. 12345678" />
+        </div>
+        <div>
+          <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 4px;">What Card Do You Want? (Card ID)</label>
+          <input type="text" id="propWantCardId" class="input-field" placeholder="e.g. dragon_02" />
+        </div>
+        <div>
+          <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 4px;">Desired Variant:</label>
+          <select id="propWantVariant" class="select-field" style="width: 100%;">
+            <option value="Normal">Normal</option>
+            <option value="Foil">Foil</option>
+            <option value="Prismatic">Prismatic</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" id="submitTradeOfferBtn" style="margin-top: 10px; width: 100%;">Send Trade Request</button>
       </div>
     </div>
   </div>
@@ -256,6 +292,8 @@
     let currentUserId = null;
     let isFlipped = false;
     let currentSetId = 'wings_and_friends';
+    let selectedActiveCard = null;
+    let selectedActiveVariant = 'Normal';
 
     async function initAuth() {
       if (!supabaseClient) return;
@@ -515,6 +553,9 @@
 
     function openModal(card, quantity, variant, isOwned) {
       isFlipped = false;
+      selectedActiveCard = card;
+      selectedActiveVariant = variant;
+
       document.getElementById('modalTitle').innerText = card.Card_Name;
       document.getElementById('modalVariant').innerText = variant;
       document.getElementById('modalQuantity').innerText = `${quantity}x owned`;
@@ -522,6 +563,13 @@
       document.getElementById('modalBackImg').src = card.CardBackURL;
       document.getElementById('modalFinishLayer').style.cssText = getFinishConfig(variant, card, 50, 50);
       
+      const tradeBtn = document.getElementById('modalTradeBtn');
+      if (currentUserId && quantity > 0) {
+        tradeBtn.style.display = 'block';
+      } else {
+        tradeBtn.style.display = 'none';
+      }
+
       if (isOwned) {
         modalStage.classList.remove('unowned');
       } else {
@@ -550,6 +598,48 @@
 
     modalStage.addEventListener('mouseleave', () => {
       modalCard.style.transform = isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)';
+    });
+
+    // Propose Trade Modal Logic
+    const proposeModalOverlay = document.getElementById('proposeTradeModalOverlay');
+    document.getElementById('modalTradeBtn').addEventListener('click', () => {
+      if (!selectedActiveCard) return;
+      document.getElementById('propOfferCard').value = `${selectedActiveCard.Card_Name} (${selectedActiveVariant}) [ID: ${selectedActiveCard.Card_ID}]`;
+      document.getElementById('propReceiverId').value = '';
+      document.getElementById('propWantCardId').value = '';
+      proposeModalOverlay.classList.add('active');
+    });
+
+    document.getElementById('closeProposeModalBtn').addEventListener('click', () => proposeModalOverlay.classList.remove('active'));
+
+    document.getElementById('submitTradeOfferBtn').addEventListener('click', async () => {
+      if (!currentUserId || !selectedActiveCard) return;
+      const receiverId = document.getElementById('propReceiverId').value.trim();
+      const wantCardId = document.getElementById('propWantCardId').value.trim();
+      const wantVariant = document.getElementById('propWantVariant').value;
+
+      if (!receiverId || !wantCardId) {
+        alert('Please fill out the receiver Twitch ID and the card ID you want.');
+        return;
+      }
+
+      const { error } = await supabaseClient.from('trades').insert([{
+        sender_twitch_id: currentUserId,
+        receiver_twitch_id: receiverId,
+        sender_card_id: selectedActiveCard.Card_ID,
+        sender_variant: selectedActiveVariant,
+        receiver_card_id: wantCardId,
+        receiver_variant: wantVariant,
+        status: 'pending'
+      }]);
+
+      if (error) {
+        alert('Failed to send trade proposal: ' + error.message);
+      } else {
+        alert('Trade proposal sent successfully!');
+        proposeModalOverlay.classList.remove('active');
+        modalOverlay.classList.remove('active');
+      }
     });
 
     // Trade Inbox Logic
