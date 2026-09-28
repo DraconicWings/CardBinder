@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Card Binder02</title>
+  <title>Card Binder01</title>
   <!-- Supabase JS Client SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
@@ -237,8 +237,10 @@
           <div class="autocomplete-dropdown" id="userAutocompleteDropdown"></div>
         </div>
         <div>
-          <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 4px;">What Card Do You Want? (Card ID)</label>
-          <input type="text" id="propWantCardId" class="input-field" placeholder="e.g. dragon_02" />
+          <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 4px;">What Card Do You Want?</label>
+          <select id="propWantCardSelect" class="select-field" style="width: 100%;">
+            <option value="">-- Choose desired card --</option>
+          </select>
         </div>
         <div>
           <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 4px;">Desired Variant:</label>
@@ -637,17 +639,17 @@
     const autocompleteDropdown = document.getElementById('userAutocompleteDropdown');
     const offerCardSelect = document.getElementById('propOfferCardSelect');
     const offerVariantSelect = document.getElementById('propOfferVariantSelect');
+    const wantCardSelect = document.getElementById('propWantCardSelect');
 
     function openProposeTradeModal() {
       if (!currentUserId) return;
       
-      // Populate owned cards dropdown
+      // Populate owned cards dropdown (name only)
       const ownedCardsMap = new Map();
       Object.keys(userInventory).forEach(key => {
         if (userInventory[key] > 0) {
           const lastUnderscore = key.lastIndexOf('_');
           const cardId = key.substring(0, lastUnderscore);
-          const variant = key.substring(lastUnderscore + 1);
           const masterCard = masterCards.find(c => c.Card_ID === cardId);
           if (masterCard) {
             ownedCardsMap.set(cardId, masterCard.Card_Name);
@@ -659,14 +661,24 @@
       ownedCardsMap.forEach((name, cardId) => {
         const opt = document.createElement('option');
         opt.value = cardId;
-        opt.textContent = `${name} (${cardId})`;
+        opt.textContent = name;
         offerCardSelect.appendChild(opt);
       });
 
       offerVariantSelect.innerHTML = '<option value="">-- Choose variant --</option>';
+
+      // Populate want card dropdown with all master cards of the current set
+      wantCardSelect.innerHTML = '<option value="">-- Choose desired card --</option>';
+      masterCards.forEach(card => {
+        const opt = document.createElement('option');
+        opt.value = card.Card_ID;
+        opt.textContent = card.Card_Name;
+        wantCardSelect.appendChild(opt);
+      });
+
       usernameInput.value = '';
       receiverIdInput.value = '';
-      document.getElementById('propWantCardId').value = '';
+      document.getElementById('propWantVariant').value = 'Normal';
       autocompleteDropdown.style.display = 'none';
       proposeModalOverlay.classList.add('active');
     }
@@ -755,7 +767,7 @@
         }
       }
 
-      const wantCardId = document.getElementById('propWantCardId').value.trim();
+      const wantCardId = wantCardSelect.value;
       const wantVariant = document.getElementById('propWantVariant').value;
 
       if (!offerCardId || !offerVariant) {
@@ -764,7 +776,7 @@
       }
 
       if (!receiverId || !wantCardId) {
-        alert('Please specify a valid receiver username and the card ID you want.');
+        alert('Please specify a valid receiver username and the desired card.');
         return;
       }
 
@@ -832,13 +844,16 @@
 
       container.innerHTML = trades.map(trade => {
         const senderName = nameMap[trade.sender_twitch_id] || trade.sender_twitch_id;
+        const offerCard = masterCards.find(c => c.Card_ID === trade.sender_card_id)?.Card_Name || trade.sender_card_id;
+        const wantCard = masterCards.find(c => c.Card_ID === trade.receiver_card_id)?.Card_Name || trade.receiver_card_id;
+
         return `
           <div class="trade-item">
             <div>
               <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 6px;">From: <strong>${senderName}</strong></p>
               <div style="display: flex; gap: 12px; font-size: 0.85rem;">
-                <div><span style="color: #f39c12;">Offers:</span> <strong>${trade.sender_card_id}</strong> (${trade.sender_variant})</div>
-                <div><span style="color: #3498db;">Wants:</span> <strong>${trade.receiver_card_id}</strong> (${trade.receiver_variant})</div>
+                <div><span style="color: #f39c12;">Offers:</span> <strong>${offerCard}</strong> (${trade.sender_variant})</div>
+                <div><span style="color: #3498db;">Wants:</span> <strong>${wantCard}</strong> (${trade.receiver_variant})</div>
               </div>
             </div>
             <div style="display: flex; gap: 8px;">
