@@ -571,8 +571,7 @@
         console.error('Error fetching cards from Supabase:', err.message);
         document.getElementById('cardGrid').innerHTML = `
           <div class="loading-state" style="color: #ff6b6b;">
-            Failed to load cards from Supabase.<br><small style="color: var(--text-muted);">${err.message}</small><br><br>
-            <i>Make sure your 'cards' table exists in Supabase. Type <b>matrix</b> anywhere to open the admin panel.</i>
+            Failed to load cards from Supabase.<br><small style="color: var(--text-muted);">${err.message}</small>
           </div>`;
       }
     }
@@ -604,7 +603,7 @@
       grid.innerHTML = '';
 
       if (masterCards.length === 0) {
-        grid.innerHTML = `<div class="loading-state">No cards found in this set catalog. Type <b>matrix</b> to open the admin panel and add cards.</div>`;
+        grid.innerHTML = `<div class="loading-state">No cards found in this set catalog.</div>`;
         return;
       }
 
