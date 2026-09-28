@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Card Binder02</title>
+  <title>Card Binder01</title>
   <!-- Supabase JS Client SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
@@ -68,10 +68,10 @@
     .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--card-w), 1fr)); gap: 28px; justify-items: center; }
     .loading-state { grid-column: 1 / -1; text-align: center; padding: 60px; color: var(--text-muted); font-size: 1.1rem; }
 
-    .card-container { width: var(--card-w); height: var(--card-h); perspective: 1000px; cursor: pointer; }
+    .card-container { width: var(--card-w); height: var(--card-h); perspective: 1000px; cursor: pointer; touch-action: none; }
     .card-3d-wrapper {
       width: 100%; height: 100%; position: relative; transform-style: preserve-3d;
-      transition: transform 0.1s ease-out; border-radius: 14px;
+      transition: transform 0.1s ease-out; border-radius: 14px; pointer-events: none;
     }
 
     .face {
@@ -136,7 +136,7 @@
     }
     .modal-card-stage {
       flex: 1; min-width: 320px; height: 460px; background: #09090b;
-      display: flex; align-items: center; justify-content: center; perspective: 1200px; padding: 20px;
+      display: flex; align-items: center; justify-content: center; perspective: 1200px; padding: 20px; touch-action: none;
     }
     .modal-card-stage .card-3d-wrapper { width: 250px; height: 350px; }
     .modal-details { flex: 1; min-width: 260px; padding: 36px; display: flex; flex-direction: column; justify-content: center; gap: 14px; }
@@ -629,10 +629,10 @@
         const wrapper = cardEl.querySelector('.card-3d-wrapper');
         const finishLayer = cardEl.querySelector('.finish-layer');
 
-        cardEl.addEventListener('mousemove', (e) => {
+        function handleMove(clientX, clientY) {
           const rect = cardEl.getBoundingClientRect();
-          const x = e.clientX - rect.left;
-          const y = e.clientY - rect.top;
+          const x = clientX - rect.left;
+          const y = clientY - rect.top;
           const xc = x - rect.width / 2;
           const yc = y - rect.height / 2;
 
@@ -647,18 +647,44 @@
               finishLayer.style.cssText = getFinishConfig(selectedVariant, card, posX, posY);
             }
           }
-        });
+        }
 
-        cardEl.addEventListener('mouseleave', () => {
+        function handleReset() {
           wrapper.style.transform = `rotateX(0deg) rotateY(0deg)`;
           if (selectedVariant === 'Foil' && card.Foil_Matte) {
             finishLayer.style.backgroundPosition = `50% 50%`;
           } else if (selectedVariant === 'Prismatic' && card.Prismatic_Texture) {
             finishLayer.style.cssText = getFinishConfig(selectedVariant, card, 50, 50);
           }
+        }
+
+        cardEl.addEventListener('mousemove', (e) => {
+          handleMove(e.clientX, e.clientY);
         });
 
-        cardEl.addEventListener('click', () => openModal(card, quantity, selectedVariant, isOwned));
+        cardEl.addEventListener('mouseleave', () => {
+          handleReset();
+        });
+
+        cardEl.addEventListener('touchmove', (e) => {
+          if (e.touches.length > 0) {
+            handleMove(e.touches[0].clientX, e.touches[0].clientY);
+          }
+        }, { passive: true });
+
+        cardEl.addEventListener('touchend', () => {
+          handleReset();
+        });
+
+        let isClick = true;
+        cardEl.addEventListener('touchstart', () => { isClick = true; }, { passive: true });
+        cardEl.addEventListener('touchmove', () => { isClick = false; }, { passive: true });
+        cardEl.addEventListener('click', () => {
+          if (isClick) {
+            openModal(card, quantity, selectedVariant, isOwned);
+          }
+        });
+
         grid.appendChild(cardEl);
       });
     }
@@ -717,18 +743,36 @@
       modalCard.style.transform = isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)';
     });
 
-    modalStage.addEventListener('mousemove', (e) => {
+    function handleModalMove(clientX, clientY) {
       const rect = modalStage.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
+      const x = clientX - rect.left;
+      const y = clientY - rect.top;
       const xc = x - rect.width / 2;
       const yc = y - rect.height / 2;
 
       modalCard.style.transform = `rotateX(${(-yc / rect.height) * 14}deg) rotateY(${(isFlipped ? 180 : 0) + (xc / rect.width) * 14}deg)`;
+    }
+
+    function handleModalReset() {
+      modalCard.style.transform = isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)';
+    }
+
+    modalStage.addEventListener('mousemove', (e) => {
+      handleModalMove(e.clientX, e.clientY);
     });
 
     modalStage.addEventListener('mouseleave', () => {
-      modalCard.style.transform = isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)';
+      handleModalReset();
+    });
+
+    modalStage.addEventListener('touchmove', (e) => {
+      if (e.touches.length > 0) {
+        handleModalMove(e.touches[0].clientX, e.touches[0].clientY);
+      }
+    }, { passive: true });
+
+    modalStage.addEventListener('touchend', () => {
+      handleModalReset();
     });
 
     // Propose Trade Modal & Autocomplete Logic
