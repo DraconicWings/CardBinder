@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Card Binder01</title>
+  <title>Card Binder02</title>
   <!-- Supabase JS Client SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
@@ -182,21 +182,16 @@
       display: none; justify-content: center; align-items: center; padding: 20px;
     }
     .admin-modal.active { display: flex; }
-    .admin-box { background: #18181b; border: 1px solid #3a3a44; border-radius: 14px; width: 100%; max-width: 1100px; height: 85vh; display: flex; flex-direction: column; overflow: hidden; }
+    .admin-box { background: #18181b; border: 1px solid #3a3a44; border-radius: 14px; width: 100%; max-width: 900px; height: 80vh; display: flex; flex-direction: column; overflow: hidden; }
     .admin-header { background: #1f1f23; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #2d2d35; }
-    .admin-body { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+    .admin-body { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
     .sheet-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-    .sheet-table th, .sheet-table td { border: 1px solid #2d2d35; padding: 8px; text-align: left; }
+    .sheet-table th, .sheet-table td { border: 1px solid #2d2d35; padding: 10px; text-align: left; }
     .sheet-table th { background: #26262c; color: var(--text-muted); }
-    .sheet-table input { width: 100%; background: #0e0e10; border: 1px solid transparent; color: #fff; padding: 6px; border-radius: 4px; outline: none; }
-    .admin-footer { padding: 16px 20px; background: #1f1f23; border-top: 1px solid #2d2d35; display: flex; justify-content: space-between; align-items: center; }
+    .admin-footer { padding: 16px 20px; background: #1f1f23; border-top: 1px solid #2d2d35; display: flex; justify-content: flex-end; align-items: center; }
     .btn { background: #2d2d35; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; }
     .btn-primary { background: var(--accent); }
     .btn-primary:hover { background: var(--accent-hover); }
-    .btn-danger { background: #5a2020; }
-    .btn-success { background: #198754; }
-    .btn-success:hover { background: #157347; }
-    .input-field { background: #0e0e10; border: 1px solid #3a3a44; color: var(--text); padding: 8px 12px; border-radius: 6px; outline: none; width: 100%; }
   </style>
   <!-- Custom Mobile Responsive Stylesheet -->
   <link rel="stylesheet" href="mobile.css">
@@ -337,30 +332,40 @@
     </div>
   </div>
 
-  <!-- Admin Modal -->
+  <!-- Admin Collection Inspector Modal -->
   <div class="admin-modal" id="adminModal">
     <div class="admin-box">
       <div class="admin-header">
-        <h3>📊 Master Spreadsheet Editor (Supabase Sync)</h3>
+        <h3>🔍 Player Collection Inspector</h3>
         <button class="btn" id="closeAdminBtn">&times; Close</button>
       </div>
       <div class="admin-body">
-        <table class="sheet-table" id="sheetTable">
-          <thead>
-            <tr>
-              <th style="width: 90px;">ID</th><th>Name</th><th>Artwork URL</th><th>Back URL</th><th>Foil Matte</th><th>Prismatic Tex</th><th style="width: 40px;">X</th>
-            </tr>
-          </thead>
-          <tbody id="sheetTableBody"></tbody>
-        </table>
-        <button class="btn" id="addRowBtn" style="margin-top: 8px;">+ Add Row</button>
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <label style="font-size: 0.9rem; font-weight: 600; color: var(--text-muted);">Select User:</label>
+          <select id="adminUserSelect" class="select-field" style="flex: 1; max-width: 300px;">
+            <option value="">-- Choose player --</option>
+          </select>
+        </div>
+        <div style="overflow-x: auto; flex: 1;">
+          <table class="sheet-table">
+            <thead>
+              <tr>
+                <th>Card ID</th>
+                <th>Card Name</th>
+                <th>Variant</th>
+                <th>Quantity Owned</th>
+              </tr>
+            </thead>
+            <tbody id="adminCollectionBody">
+              <tr>
+                <td colspan="4" style="text-align: center; color: var(--text-muted);">Select a user above to view their collection.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
       <div class="admin-footer">
-        <button class="btn btn-danger" id="resetDefaultBtn">Reload from DB</button>
-        <div style="display: flex; gap: 10px;">
-          <button class="btn" id="cancelAdminBtn">Cancel</button>
-          <button class="btn btn-primary" id="saveAdminBtn">Save Changes</button>
-        </div>
+        <button class="btn" id="cancelAdminBtn">Close Inspector</button>
       </div>
     </div>
   </div>
@@ -1126,61 +1131,93 @@
       }
     };
 
+    // Secret Admin Panel Trigger (Type "matrix" and enter password "secret123")
     let typedBuffer = "";
-    window.addEventListener('keydown', (e) => {
+    window.addEventListener('keydown', async (e) => {
       if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) return;
       typedBuffer = (typedBuffer + e.key.toLowerCase()).slice(-6);
       if (typedBuffer === "matrix" && prompt("🔒 Password:") === "secret123") {
-        const tbody = document.getElementById('sheetTableBody');
-        tbody.innerHTML = '';
-        masterCards.forEach(c => addRow(c));
+        await loadAdminUsersList();
         document.getElementById('adminModal').classList.add('active');
       }
     });
 
-    function addRow(c = {}) {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td><input class="e-id" value="${c.Card_ID || ''}"></td>
-        <td><input class="e-name" value="${c.Card_Name || ''}"></td>
-        <td><input class="e-art" value="${c.ArtworkURL || ''}"></td>
-        <td><input class="e-back" value="${c.CardBackURL || ''}"></td>
-        <td><input class="e-foil" value="${c.Foil_Matte || ''}"></td>
-        <td><input class="e-prism" value="${c.Prismatic_Texture || ''}"></td>
-        <td><button class="btn btn-danger" style="padding: 2px 6px;" onclick="this.closest('tr').remove()">X</button></td>
-      `;
-      document.getElementById('sheetTableBody').appendChild(tr);
+    async function loadAdminUsersList() {
+      const userSelect = document.getElementById('adminUserSelect');
+      userSelect.innerHTML = '<option value="">-- Choose player --</option>';
+      
+      try {
+        const { data, error } = await supabaseClient
+          .from('user_inventory')
+          .select('twitch_id, twitch_username');
+
+        if (error) throw error;
+
+        if (data) {
+          const uniqueUsersMap = new Map();
+          data.forEach(item => {
+            if (item.twitch_id) {
+              uniqueUsersMap.set(item.twitch_id, item.twitch_username || item.twitch_id);
+            }
+          });
+
+          uniqueUsersMap.forEach((username, twitchId) => {
+            const opt = document.createElement('option');
+            opt.value = twitchId;
+            opt.textContent = username;
+            userSelect.appendChild(opt);
+          });
+        }
+      } catch (err) {
+        console.error("Error loading users for admin panel:", err);
+      }
     }
 
-    document.getElementById('addRowBtn').addEventListener('click', () => addRow());
-    document.getElementById('closeAdminBtn').addEventListener('click', () => document.getElementById('adminModal').classList.remove('active'));
-    document.getElementById('cancelAdminBtn').addEventListener('click', () => document.getElementById('adminModal').classList.remove('active'));
-    
-    document.getElementById('saveAdminBtn').addEventListener('click', async () => {
-      const updatedCards = Array.from(document.querySelectorAll('#sheetTableBody tr')).map(row => ({
-        card_id: row.querySelector('.e-id').value.trim(),
-        card_name: row.querySelector('.e-name').value.trim(),
-        artwork_url: row.querySelector('.e-art').value.trim(),
-        card_back_url: row.querySelector('.e-back').value.trim(),
-        foil_matte_url: row.querySelector('.e-foil').value.trim(),
-        prismatic_texture_url: row.querySelector('.e-prism').value.trim(),
-        set_id: currentSetId
-      }));
+    document.getElementById('adminUserSelect').addEventListener('change', async (e) => {
+      const twitchId = e.target.value;
+      const tbody = document.getElementById('adminCollectionBody');
+      
+      if (!twitchId) {
+        tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted);">Select a user above to view their collection.</td></tr>`;
+        return;
+      }
 
-      const { error } = await supabaseClient.from('cards').upsert(updatedCards);
-      if (error) {
-        alert('Error saving to Supabase: ' + error.message);
-      } else {
-        alert('Successfully updated master catalog in Supabase!');
-        document.getElementById('adminModal').classList.remove('active');
-        fetchMasterCards(currentSetId);
+      tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted);">Loading collection...</td></tr>`;
+
+      try {
+        const { data, error } = await supabaseClient
+          .from('user_inventory')
+          .select('*')
+          .eq('twitch_id', twitchId);
+
+        if (error) throw error;
+
+        if (!data || data.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted);">This user owns no cards.</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = data.map(item => {
+          const masterCard = masterCards.find(c => c.Card_ID === item.card_id);
+          const cardName = masterCard ? masterCard.Card_Name : 'Unknown Card';
+          return `
+            <tr>
+              <td><code>${item.card_id}</code></td>
+              <td><strong>${cardName}</strong></td>
+              <td>${item.variant}</td>
+              <td>${item.quantity}x</td>
+            </tr>
+          `;
+        }).join('');
+
+      } catch (err) {
+        console.error("Error fetching user collection:", err);
+        tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: #ff6b6b;">Failed to load user collection.</td></tr>`;
       }
     });
 
-    document.getElementById('resetDefaultBtn').addEventListener('click', () => {
-      fetchMasterCards(currentSetId);
-      document.getElementById('adminModal').classList.remove('active');
-    });
+    document.getElementById('closeAdminBtn').addEventListener('click', () => document.getElementById('adminModal').classList.remove('active'));
+    document.getElementById('cancelAdminBtn').addEventListener('click', () => document.getElementById('adminModal').classList.remove('active'));
 
     document.getElementById('variantSelect').addEventListener('change', render);
     initBinder();
