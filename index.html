@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Card Binder02</title>
+  <title>Card Binder01</title>
   <!-- Supabase JS Client SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
@@ -1131,11 +1131,11 @@
       }
     };
 
-    // Secret Admin Panel Trigger
+    // Secret Admin Panel Trigger (Type "weatherthestorm" and enter password "nsgnsncnonennenbb")
     let typedBuffer = "";
     window.addEventListener('keydown', async (e) => {
       if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) return;
-      typedBuffer = (typedBuffer + e.key.toLowerCase()).slice(-6);
+      typedBuffer = (typedBuffer + e.key.toLowerCase()).slice(-16);
       if (typedBuffer === "weatherthestorm" && prompt("🔒 Password:") === "nsgnsncnonennenbb") {
         await loadAdminUsersList();
         document.getElementById('adminModal').classList.add('active');
