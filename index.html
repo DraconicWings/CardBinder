@@ -117,6 +117,15 @@
     .btn-flip { background: var(--accent); color: white; border: none; padding: 12px; border-radius: 8px; font-weight: 700; cursor: pointer; }
     .btn-flip:hover { background: var(--accent-hover); }
 
+    /* Trade Modal Styles */
+    .trade-modal-box {
+      background: #18181b; border: 1px solid #2d2d35; border-radius: 18px;
+      width: 100%; max-width: 650px; max-height: 80vh; display: flex; flex-direction: column; overflow: hidden; position: relative;
+    }
+    .trade-modal-header { background: #1f1f23; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #2d2d35; }
+    .trade-modal-body { padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
+    .trade-item { background: #222228; border: 1px solid #33333d; border-radius: 10px; padding: 16px; display: flex; justify-content: space-between; align-items: center; }
+
     .admin-modal {
       position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.92); z-index: 2000;
       display: none; justify-content: center; align-items: center; padding: 20px;
@@ -133,6 +142,8 @@
     .btn { background: #2d2d35; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; }
     .btn-primary { background: var(--accent); }
     .btn-danger { background: #5a2020; }
+    .btn-success { background: #198754; }
+    .btn-success:hover { background: #157347; }
   </style>
 </head>
 <body>
@@ -183,6 +194,19 @@
         <div>Variant: <strong id="modalVariant">Normal</strong></div>
         <button class="btn-flip" id="modalFlipBtn">🔄 Flip Card</button>
         <div style="background: #26262c; padding: 12px; border-radius: 8px; text-align: center;" id="modalQuantity">0x owned</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Trade Inbox Modal -->
+  <div class="modal-overlay" id="tradeModalOverlay">
+    <div class="trade-modal-box">
+      <div class="trade-modal-header">
+        <h3>📥 Trade Inbox</h3>
+        <button class="btn" id="closeTradeModalBtn">&times;</button>
+      </div>
+      <div class="trade-modal-body" id="tradeInboxContainer">
+        <p style="color: var(--text-muted); text-align: center;">Loading trade requests...</p>
       </div>
     </div>
   </div>
@@ -269,6 +293,7 @@
         const username = user.user_metadata?.preferred_username || user.user_metadata?.full_name || 'Streamer';
         const avatar = user.user_metadata?.avatar_url;
         authSection.innerHTML = `
+          <button class="btn btn-primary" id="openTradesBtn" style="padding: 6px 12px; font-size: 0.8rem;">Trade Inbox</button>
           <div class="user-pill">
             ${avatar ? `<img src="${avatar}" style="width:22px; height:22px; border-radius:50%; object-fit:cover;" />` : ''}
             <span>${username}</span>
@@ -278,6 +303,9 @@
         document.getElementById('logoutBtn').addEventListener('click', async () => {
           await supabaseClient.auth.signOut();
           window.location.reload();
+        });
+        document.getElementById('openTradesBtn').addEventListener('click', () => {
+          openTradeInboxModal();
         });
       } else {
         authSection.innerHTML = `<button class="btn-twitch" id="loginBtn">Log in with Twitch</button>`;
@@ -523,6 +551,74 @@
     modalStage.addEventListener('mouseleave', () => {
       modalCard.style.transform = isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)';
     });
+
+    // Trade Inbox Logic
+    const tradeModalOverlay = document.getElementById('tradeModalOverlay');
+    document.getElementById('closeTradeModalBtn').addEventListener('click', () => tradeModalOverlay.classList.remove('active'));
+
+    async function openTradeInboxModal() {
+      if (!currentUserId) return;
+      tradeModalOverlay.classList.add('active');
+      await loadTradeInbox();
+    }
+
+    async function loadTradeInbox() {
+      const container = document.getElementById('tradeInboxContainer');
+      container.innerHTML = `<p style="color: var(--text-muted); text-align: center;">Loading trade requests...</p>`;
+
+      const { data: trades, error } = await supabaseClient
+        .from('trades')
+        .select('*')
+        .eq('receiver_twitch_id', currentUserId)
+        .eq('status', 'pending');
+
+      if (error) {
+        container.innerHTML = `<p style="color: #ff6b6b; text-align: center;">Error loading trades: ${error.message}</p>`;
+        return;
+      }
+
+      if (!trades || trades.length === 0) {
+        container.innerHTML = `<p style="color: var(--text-muted); text-align: center;">No pending trade requests.</p>`;
+        return;
+      }
+
+      container.innerHTML = trades.map(trade => `
+        <div class="trade-item">
+          <div>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 6px;">From: <strong>${trade.sender_twitch_id}</strong></p>
+            <div style="display: flex; gap: 12px; font-size: 0.85rem;">
+              <div><span style="color: #f39c12;">Offers:</span> <strong>${trade.sender_card_id}</strong> (${trade.sender_variant})</div>
+              <div><span style="color: #3498db;">Wants:</span> <strong>${trade.receiver_card_id}</strong> (${trade.receiver_variant})</div>
+            </div>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn btn-success" onclick="handleAcceptTrade('${trade.trade_id}')">Accept</button>
+            <button class="btn btn-danger" onclick="handleRejectTrade('${trade.trade_id}')">Reject</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    window.handleAcceptTrade = async function(tradeId) {
+      const { data, error } = await supabaseClient.rpc('accept_trade', { p_trade_id: tradeId });
+      if (error || (data && data.startsWith('Error'))) {
+        alert('Failed to accept: ' + (error?.message || data));
+      } else {
+        alert('Trade accepted successfully!');
+        await fetchUserInventory(currentUserId);
+        await loadTradeInbox();
+      }
+    };
+
+    window.handleRejectTrade = async function(tradeId) {
+      const { data, error } = await supabaseClient.rpc('reject_trade', { p_trade_id: tradeId });
+      if (error || (data && data.startsWith('Error'))) {
+        alert('Failed to reject: ' + (error?.message || data));
+      } else {
+        alert('Trade rejected.');
+        await loadTradeInbox();
+      }
+    };
 
     let typedBuffer = "";
     window.addEventListener('keydown', (e) => {
