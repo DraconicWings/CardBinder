@@ -383,6 +383,8 @@
     let currentUsername = null;
     let isFlipped = false;
     let currentSetId = 'wings_and_friends';
+    let currentModalCard = null;
+    let currentModalVariant = 'Normal';
 
     async function initAuth() {
       if (!supabaseClient) return;
@@ -719,6 +721,8 @@
 
     function openModal(card, quantity, variant, isOwned) {
       isFlipped = false;
+      currentModalCard = card;
+      currentModalVariant = variant;
 
       document.getElementById('modalTitle').innerText = card.Card_Name;
       document.getElementById('modalVariant').innerText = variant;
@@ -751,10 +755,31 @@
       const yc = y - rect.height / 2;
 
       modalCard.style.transform = `rotateX(${(-yc / rect.height) * 14}deg) rotateY(${(isFlipped ? 180 : 0) + (xc / rect.width) * 14}deg)`;
+
+      if (currentModalCard && !isFlipped) {
+        const finishLayer = document.getElementById('modalFinishLayer');
+        if ((currentModalVariant === 'Foil' && currentModalCard.Foil_Matte) || (currentModalVariant === 'Prismatic' && currentModalCard.Prismatic_Texture)) {
+          const posX = (x / rect.width) * 100;
+          const posY = (y / rect.height) * 100;
+          if (currentModalVariant === 'Foil') {
+            finishLayer.style.backgroundPosition = `${posX}% ${posY}%`;
+          } else if (currentModalVariant === 'Prismatic') {
+            finishLayer.style.cssText = getFinishConfig(currentModalVariant, currentModalCard, posX, posY);
+          }
+        }
+      }
     }
 
     function handleModalReset() {
       modalCard.style.transform = isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)';
+      if (currentModalCard && !isFlipped) {
+        const finishLayer = document.getElementById('modalFinishLayer');
+        if (currentModalVariant === 'Foil' && currentModalCard.Foil_Matte) {
+          finishLayer.style.backgroundPosition = `50% 50%`;
+        } else if (currentModalVariant === 'Prismatic' && currentModalCard.Prismatic_Texture) {
+          finishLayer.style.cssText = getFinishConfig(currentModalVariant, currentModalCard, 50, 50);
+        }
+      }
     }
 
     modalStage.addEventListener('mousemove', (e) => {
