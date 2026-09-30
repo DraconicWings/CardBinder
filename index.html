@@ -558,7 +558,8 @@
         const { data, error } = await supabaseClient
           .from('cards')
           .select('*')
-          .eq('set_id', setId);
+          .eq('set_id', setId)
+          .order('card_id', { ascending: true }); // <-- Sorted sequentially by card ID
 
         if (error) throw error;
 
