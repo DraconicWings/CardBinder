@@ -206,7 +206,7 @@
         <option value="">Loading Sets...</option>
       </select>
       
-      <!-- Variant Selector Dropdown -->
+      <!-- Variant Selector Dropdown (Dynamically managed) -->
       <select id="variantSelect" class="select-field">
         <option value="Normal">Normal</option>
         <option value="Foil">Foil</option>
@@ -559,7 +559,7 @@
           .from('cards')
           .select('*')
           .eq('set_id', setId)
-          .order('card_id', { ascending: true }); // <-- Sorted sequentially by card ID
+          .order('card_id', { ascending: true });
 
         if (error) throw error;
 
@@ -570,8 +570,11 @@
           CardBackURL: c.card_back_url,
           Foil_Matte: c.foil_matte_url,
           Prismatic_Texture: c.prismatic_texture_url,
-          Set_ID: c.set_id
+          Set_ID: c.set_id,
+          Variants: c.variants || ['Normal', 'Foil', 'Prismatic'] // Falls back to standard three if not explicitly configured per card
         }));
+
+        updateVariantDropdown();
         render();
       } catch (err) {
         console.error('Error fetching cards from Supabase:', err.message);
@@ -579,6 +582,40 @@
           <div class="loading-state" style="color: #ff6b6b;">
             Failed to load cards from Supabase.<br><small style="color: var(--text-muted);">${err.message}</small>
           </div>`;
+      }
+    }
+
+    function updateVariantDropdown() {
+      const variantSelect = document.getElementById('variantSelect');
+      
+      // Gather all available variants across the current set's cards
+      let allVariants = new Set();
+      masterCards.forEach(card => {
+        if (Array.isArray(card.Variants)) {
+          card.Variants.forEach(v => allVariants.add(v));
+        } else {
+          allVariants.add('Normal');
+          if (card.Foil_Matte) allVariants.add('Foil');
+          if (card.Prismatic_Texture) allVariants.add('Prismatic');
+        }
+      });
+
+      const uniqueVariants = Array.from(allVariants);
+
+      // If there's 1 or fewer variants, hide dropdown completely
+      if (uniqueVariants.length <= 1) {
+        variantSelect.style.display = 'none';
+        variantSelect.value = uniqueVariants[0] || 'Normal';
+      } else {
+        // Otherwise, show and populate dropdown dynamically
+        variantSelect.style.display = 'inline-block';
+        const currentValue = variantSelect.value;
+        
+        variantSelect.innerHTML = uniqueVariants.map(v => `<option value="${v}">${v}</option>`).join('');
+        
+        if (uniqueVariants.includes(currentValue)) {
+          variantSelect.value = currentValue;
+        }
       }
     }
 
@@ -605,7 +642,8 @@
 
     function render() {
       const grid = document.getElementById('cardGrid');
-      const selectedVariant = document.getElementById('variantSelect').value;
+      const variantSelect = document.getElementById('variantSelect');
+      const selectedVariant = variantSelect.style.display === 'none' ? (variantSelect.value || 'Normal') : variantSelect.value;
       grid.innerHTML = '';
 
       if (masterCards.length === 0) {
