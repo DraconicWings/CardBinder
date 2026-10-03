@@ -571,7 +571,7 @@
           Foil_Matte: c.foil_matte_url,
           Prismatic_Texture: c.prismatic_texture_url,
           Set_ID: c.set_id,
-          Variants: c.variants || ['Normal', 'Foil', 'Prismatic'] // Falls back to standard three if not explicitly configured per card
+          Variants: c.variants || ['Normal', 'Foil', 'Prismatic']
         }));
 
         updateVariantDropdown();
@@ -588,7 +588,6 @@
     function updateVariantDropdown() {
       const variantSelect = document.getElementById('variantSelect');
       
-      // Gather all available variants across the current set's cards
       let allVariants = new Set();
       masterCards.forEach(card => {
         if (Array.isArray(card.Variants)) {
@@ -602,12 +601,10 @@
 
       const uniqueVariants = Array.from(allVariants);
 
-      // If there's 1 or fewer variants, hide dropdown completely
       if (uniqueVariants.length <= 1) {
         variantSelect.style.display = 'none';
         variantSelect.value = uniqueVariants[0] || 'Normal';
       } else {
-        // Otherwise, show and populate dropdown dynamically
         variantSelect.style.display = 'inline-block';
         const currentValue = variantSelect.value;
         
@@ -1034,6 +1031,21 @@
         alert('Please specify a valid receiver username and the desired card.');
         return;
       }
+
+      // --- INVENTORY OWNERSHIP CHECK ---
+      const { data: receiverInv, error: invError } = await supabaseClient
+        .from('user_inventory')
+        .select('quantity')
+        .eq('twitch_id', receiverId)
+        .eq('card_id', wantCardId)
+        .eq('variant', wantVariant)
+        .maybeSingle();
+
+      if (invError || !receiverInv || receiverInv.quantity <= 0) {
+        alert('❌ Trade failed: The receiver does not own this card and variant.');
+        return;
+      }
+      // ---------------------------------
 
       const { error } = await supabaseClient.from('trades').insert([{
         sender_twitch_id: currentUserId,
