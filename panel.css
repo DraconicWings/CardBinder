@@ -1,0 +1,44 @@
+/* ==========================================
+   Twitch Panel Responsive Styles (panel.css)
+   ========================================== */
+
+body.twitch-panel-mode {
+  --card-w: 95px;
+  --card-h: 133px;
+}
+
+body.twitch-panel-mode header {
+  padding: 8px 10px;
+  flex-direction: column;
+  gap: 6px;
+}
+
+body.twitch-panel-mode .brand {
+  display: none; /* Hide brand title in panel */
+}
+
+body.twitch-panel-mode .controls-center {
+  position: static;
+  transform: none;
+  width: 100%;
+  flex-direction: column;
+  gap: 6px;
+}
+
+body.twitch-panel-mode .select-field {
+  width: 100%;
+  font-size: 0.8rem;
+  padding: 6px 8px;
+}
+
+body.twitch-panel-mode .auth-section {
+  display: none; /* Hide login/trade buttons in panel view */
+}
+
+body.twitch-panel-mode main {
+  padding: 10px 6px;
+}
+
+body.twitch-panel-mode .card-grid {
+  gap: 8px;
+}
