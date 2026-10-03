@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Card Binder01</title>
+  <title>Card Binder02</title>
   <!-- Supabase JS Client SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- Twitch Extensions Helper SDK -->
@@ -401,23 +401,25 @@
 
     // --- TWITCH PANEL MODE & AUTH CHECK ---
     const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('mode') === 'panel') {
+    if (urlParams.get('mode') === 'panel' || window.self !== window.top) {
       isTwitchPanel = true;
       document.body.classList.add('twitch-panel-mode');
       
-      // Dynamically inject panel.css only when in Twitch Panel mode
+      // Dynamically inject panel.css if needed
       const panelLink = document.createElement('link');
       panelLink.rel = 'stylesheet';
       panelLink.href = 'panel.css';
       document.head.appendChild(panelLink);
       
       // Listen to Twitch Extension authorization to identify the viewer automatically
-      window.Twitch.ext.onAuthorized((auth) => {
-        if (auth && auth.userId) {
-          currentUserId = auth.userId;
-          fetchUserInventory(currentUserId);
-        }
-      });
+      if (window.Twitch && window.Twitch.ext) {
+        window.Twitch.ext.onAuthorized((auth) => {
+          if (auth && auth.userId) {
+            currentUserId = auth.userId;
+            fetchUserInventory(currentUserId);
+          }
+        });
+      }
     }
 
     async function initAuth() {
