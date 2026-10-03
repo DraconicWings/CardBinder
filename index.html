@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Card Binder02</title>
+  <title>Card Binder01</title>
   <!-- Supabase JS Client SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- Twitch Extensions Helper SDK -->
@@ -39,6 +39,11 @@
     .user-pill { display: flex; align-items: center; gap: 8px; background: #2d2d35; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; }
     .btn-twitch { background: var(--accent); color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 700; display: flex; align-items: center; gap: 6px; }
     .btn-twitch:hover { background: var(--accent-hover); }
+
+    /* Hide header elements cleanly when in Twitch Panel mode */
+    body.twitch-panel-mode header {
+      display: none;
+    }
 
     /* Trade Notification Badge Styles */
     .trade-btn-container {
@@ -409,7 +414,8 @@
       // Listen to Twitch Extension authorization to identify the viewer automatically
       window.Twitch.ext.onAuthorized((auth) => {
         if (auth && auth.userId) {
-          fetchUserInventory(auth.userId);
+          currentUserId = auth.userId;
+          fetchUserInventory(currentUserId);
         }
       });
     }
