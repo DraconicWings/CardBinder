@@ -197,8 +197,6 @@
   </style>
   <!-- Custom Mobile Responsive Stylesheet -->
   <link rel="stylesheet" href="mobile.css">
-  <!-- Custom Twitch Panel Stylesheet -->
-  <link rel="stylesheet" href="panel.css">
 </head>
 <body>
 
@@ -401,6 +399,12 @@
     if (urlParams.get('mode') === 'panel') {
       isTwitchPanel = true;
       document.body.classList.add('twitch-panel-mode');
+      
+      // Dynamically inject panel.css only when in Twitch Panel mode
+      const panelLink = document.createElement('link');
+      panelLink.rel = 'stylesheet';
+      panelLink.href = 'panel.css';
+      document.head.appendChild(panelLink);
       
       // Listen to Twitch Extension authorization to identify the viewer automatically
       window.Twitch.ext.onAuthorized((auth) => {
