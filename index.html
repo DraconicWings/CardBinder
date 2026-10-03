@@ -199,7 +199,7 @@
        Twitch Panel Mode Styling (Auto-applied)
        ========================================== */
     body.twitch-panel-mode header {
-      padding: 10px 12px;
+      padding: 8px 10px;
     }
     body.twitch-panel-mode .brand {
       display: none; /* Hide header brand title to save space */
@@ -209,23 +209,25 @@
       transform: none;
       width: 100%;
       flex-direction: column;
-      gap: 8px;
+      gap: 6px;
     }
     body.twitch-panel-mode .select-field {
       width: 100%;
+      font-size: 0.8rem;
+      padding: 6px 8px;
     }
     body.twitch-panel-mode .auth-section {
       display: none; /* Hide login/trade buttons in panel view */
     }
     body.twitch-panel-mode main {
-      padding: 12px 8px;
+      padding: 10px 6px;
     }
     body.twitch-panel-mode {
-      --card-w: 135px;
-      --card-h: 189px;
+      --card-w: 95px;
+      --card-h: 133px;
     }
     body.twitch-panel-mode .card-grid {
-      gap: 12px;
+      gap: 8px;
     }
   </style>
   <!-- Custom Mobile Responsive Stylesheet -->
@@ -1084,7 +1086,6 @@
         return;
       }
 
-      // --- INVENTORY OWNERSHIP CHECK ---
       const { data: receiverInv, error: invError } = await supabaseClient
         .from('user_inventory')
         .select('quantity')
@@ -1097,7 +1098,6 @@
         alert('❌ Trade failed: The receiver does not own this card and variant.');
         return;
       }
-      // ---------------------------------
 
       const { error } = await supabaseClient.from('trades').insert([{
         sender_twitch_id: currentUserId,
@@ -1234,7 +1234,7 @@
       }
     };
 
-    // Secret Admin Panel Trigger (Type "weatherthestorm" and enter password "nsgnsncnonennenbb")
+    // Secret Admin Panel Trigger
     let typedBuffer = "";
     window.addEventListener('keydown', async (e) => {
       if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) return;
