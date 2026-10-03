@@ -40,11 +40,6 @@
     .btn-twitch { background: var(--accent); color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 700; display: flex; align-items: center; gap: 6px; }
     .btn-twitch:hover { background: var(--accent-hover); }
 
-    /* Hide header elements cleanly when in Twitch Panel mode */
-    body.twitch-panel-mode header {
-      display: none;
-    }
-
     /* Trade Notification Badge Styles */
     .trade-btn-container {
       position: relative;
@@ -405,7 +400,7 @@
       isTwitchPanel = true;
       document.body.classList.add('twitch-panel-mode');
       
-      // Dynamically inject panel.css if needed
+      // Dynamically inject panel.css
       const panelLink = document.createElement('link');
       panelLink.rel = 'stylesheet';
       panelLink.href = 'panel.css';
