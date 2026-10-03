@@ -3,9 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Card Binder</title>
+  <title>Card Binder1</title>
   <!-- Supabase JS Client SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Twitch Extensions Helper SDK -->
+  <script src="https://extension-files.twitch.tv/helper/v1/twitch-ext.min.js"></script>
   <style>
     :root {
       --bg-dark: #0e0e10;
@@ -192,6 +194,39 @@
     .btn { background: #2d2d35; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; }
     .btn-primary { background: var(--accent); }
     .btn-primary:hover { background: var(--accent-hover); }
+
+    /* ==========================================
+       Twitch Panel Mode Styling (Auto-applied)
+       ========================================== */
+    body.twitch-panel-mode header {
+      padding: 10px 12px;
+    }
+    body.twitch-panel-mode .brand {
+      display: none; /* Hide header brand title to save space */
+    }
+    body.twitch-panel-mode .controls-center {
+      position: static;
+      transform: none;
+      width: 100%;
+      flex-direction: column;
+      gap: 8px;
+    }
+    body.twitch-panel-mode .select-field {
+      width: 100%;
+    }
+    body.twitch-panel-mode .auth-section {
+      display: none; /* Hide login/trade buttons in panel view */
+    }
+    body.twitch-panel-mode main {
+      padding: 12px 8px;
+    }
+    body.twitch-panel-mode {
+      --card-w: 135px;
+      --card-h: 189px;
+    }
+    body.twitch-panel-mode .card-grid {
+      gap: 12px;
+    }
   </style>
   <!-- Custom Mobile Responsive Stylesheet -->
   <link rel="stylesheet" href="mobile.css">
@@ -390,9 +425,26 @@
     let currentSetId = 'wings_and_friends';
     let currentModalCard = null;
     let currentModalVariant = 'Normal';
+    let isTwitchPanel = false;
+
+    // --- TWITCH PANEL MODE & AUTH CHECK ---
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('mode') === 'panel') {
+      isTwitchPanel = true;
+      document.body.classList.add('twitch-panel-mode');
+      
+      // Listen to Twitch Extension authorization to identify the viewer automatically
+      window.Twitch.ext.onAuthorized((auth) => {
+        if (auth && auth.userId) {
+          fetchUserInventory(auth.userId);
+        }
+      });
+    }
 
     async function initAuth() {
+      if (isTwitchPanel) return; // Skip standard Supabase auth if running inside Twitch panel
       if (!supabaseClient) return;
+
       try {
         const { data: { session } } = await supabaseClient.auth.getSession();
         if (session?.user) {
