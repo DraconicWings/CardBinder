@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Card Binder01</title>
+  <title>Card Binder</title>
   <!-- Supabase JS Client SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- Twitch Extensions Helper SDK -->
@@ -194,44 +194,11 @@
     .btn { background: #2d2d35; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; }
     .btn-primary { background: var(--accent); }
     .btn-primary:hover { background: var(--accent-hover); }
-
-    /* ==========================================
-       Twitch Panel Mode Styling (Auto-applied)
-       ========================================== */
-    body.twitch-panel-mode header {
-      padding: 8px 10px;
-    }
-    body.twitch-panel-mode .brand {
-      display: none; /* Hide header brand title to save space */
-    }
-    body.twitch-panel-mode .controls-center {
-      position: static;
-      transform: none;
-      width: 100%;
-      flex-direction: column;
-      gap: 6px;
-    }
-    body.twitch-panel-mode .select-field {
-      width: 100%;
-      font-size: 0.8rem;
-      padding: 6px 8px;
-    }
-    body.twitch-panel-mode .auth-section {
-      display: none; /* Hide login/trade buttons in panel view */
-    }
-    body.twitch-panel-mode main {
-      padding: 10px 6px;
-    }
-    body.twitch-panel-mode {
-      --card-w: 95px;
-      --card-h: 133px;
-    }
-    body.twitch-panel-mode .card-grid {
-      gap: 8px;
-    }
   </style>
   <!-- Custom Mobile Responsive Stylesheet -->
   <link rel="stylesheet" href="mobile.css">
+  <!-- Custom Twitch Panel Stylesheet -->
+  <link rel="stylesheet" href="panel.css">
 </head>
 <body>
 
