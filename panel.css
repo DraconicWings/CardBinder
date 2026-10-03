@@ -10,7 +10,9 @@ body.twitch-panel-mode {
 body.twitch-panel-mode header {
   padding: 8px 10px;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
+  background: #1f1f23;
+  border-bottom: 1px solid #2d2d35;
 }
 
 body.twitch-panel-mode .brand {
@@ -21,7 +23,8 @@ body.twitch-panel-mode .controls-center {
   position: static;
   transform: none;
   width: 100%;
-  flex-direction: column;
+  display: flex;
+  flex-direction: column; /* Stack Set and Variant dropdowns vertically */
   gap: 6px;
 }
 
